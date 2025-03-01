@@ -2,9 +2,10 @@ package main
 
 import (
 	"bf_me/internal/configs"
+	"bf_me/internal/routes"
 	"bf_me/internal/storage"
-	"fmt"
 	"log"
+	"net/http"
 )
 
 func main() {
@@ -16,5 +17,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(db)
+	mux := http.NewServeMux()
+	routes.RegisterExercisesRoutes(mux, db)
+	//routes.RegisterTagsRoutes(mux)
+
+	log.Fatal(http.ListenAndServe(config.Address, mux))
 }

@@ -6,8 +6,8 @@
 
 todos today:
 
-* init & connect to db
-* start using gorm
-* init exercises, tags table
+* add server
+* router handler
+* add exercise and tag endpoints
 
 </details>
