@@ -20,6 +20,5 @@ func main() {
 	mux := http.NewServeMux()
 	routes.RegisterExercisesRoutes(mux, db)
 	//routes.RegisterTagsRoutes(mux)
-
-	log.Fatal(http.ListenAndServe(config.Address, mux))
+	log.Fatal(http.ListenAndServe("localhost:3000", mux))
 }
