@@ -1,0 +1,11 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: bf_db
+    environment:
+      POSTGRES_USER: bfdev
+      POSTGRES_DB: bfdev
+    volumes:
+      - ./docker/volumes/postgresql/data:/var/lib/postgresql/data
+    ports:
+      - 5433:5432
