@@ -6,8 +6,11 @@
 
 todos today:
 
-* init & connect to db
-* start using gorm
-* init exercises, tags table
+* add  minio
+* file saving
+
+* router
+  * pagination for list
+  * presenters
 
 </details>
