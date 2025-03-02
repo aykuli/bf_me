@@ -9,34 +9,34 @@ import (
 	"gorm.io/gorm"
 )
 
-type ExerciseRouter struct {
+type TagsRouter struct {
 	db *gorm.DB
 }
 
-func newExercisesRouter(db *gorm.DB) *ExerciseRouter {
-	return &ExerciseRouter{db}
+func newTagsRouter(db *gorm.DB) *TagsRouter {
+	return &TagsRouter{db}
 }
 
-func RegisterExercisesRoutes(mux *http.ServeMux, db *gorm.DB) {
-	router := newExercisesRouter(db)
-	mux.HandleFunc("/exercises/create", router.create)
-	mux.HandleFunc("/exercises/list", router.list)
+func RegisterTagsRoutes(mux *http.ServeMux, db *gorm.DB) {
+	router := newTagsRouter(db)
+	mux.HandleFunc("/tags/create", router.create)
+	mux.HandleFunc("/tags/list", router.list)
 }
 
-func (r *ExerciseRouter) list(w http.ResponseWriter, req *http.Request) {
+func (r *TagsRouter) list(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		http.Error(w, "No such endpoint", http.StatusNotFound)
 		return
 	}
 
-	useCase := use_cases.NewExercisesUseCase(r.db)
-	exercises, err := useCase.List()
+	useCase := use_cases.NewTagsUseCase(r.db)
+	result, err := useCase.List()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 
-	byteData, err := json.Marshal(exercises)
+	byteData, err := json.Marshal(result)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -51,26 +51,26 @@ func (r *ExerciseRouter) list(w http.ResponseWriter, req *http.Request) {
 
 }
 
-func (r *ExerciseRouter) create(w http.ResponseWriter, req *http.Request) {
+func (r *TagsRouter) create(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(w, "No such endpoint", http.StatusNotFound)
 		return
 	}
 
-	var exerciseBody requests.CreateExerciseRequestBody
-	if err := json.NewDecoder(req.Body).Decode(&exerciseBody); err != nil {
+	var tBody requests.CreateTagRequestBody
+	if err := json.NewDecoder(req.Body).Decode(&tBody); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	useCase := use_cases.NewExercisesUseCase(r.db)
-	resultExercise, err := useCase.Create(exerciseBody)
+	useCase := use_cases.NewTagsUseCase(r.db)
+	result, err := useCase.Create(tBody)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 
-	byteData, err := json.Marshal(resultExercise)
+	byteData, err := json.Marshal(result)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
