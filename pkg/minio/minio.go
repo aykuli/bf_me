@@ -44,6 +44,7 @@ func (s *S3Storage) Upload(dst string, src io.Reader) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	fmt.Printf("minio Upload place file info:%+v\n\n", info)
 	fmt.Printf("File %s was saved", s.config.Bucket+"/"+info.Key)
 	return s.config.Bucket + "/" + info.Key, nil
 }

@@ -7,5 +7,5 @@ import (
 
 type Storage struct {
 	DB *gorm.DB
-	S3 *minio.IS3Storage
+	S3 *minio.S3Storage
 }

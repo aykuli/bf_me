@@ -5,6 +5,7 @@ import (
 	"bf_me/internal/storage"
 	"bf_me/internal/use_cases"
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -56,22 +57,22 @@ func (r *ExerciseRouter) create(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var exerciseBody requests.CreateExerciseRequestBody
-	if err := json.NewDecoder(req.Body).Decode(&exerciseBody); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	var rBody requests.CreateExerciseRequestBody
+	if err := json.NewDecoder(req.Body).Decode(&rBody); err != nil {
+		http.Error(w, fmt.Sprintf("json decoding err: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
 	useCase := use_cases.NewExercisesUseCase(r.storage)
-	resultExercise, err := useCase.Create(exerciseBody)
+	result, err := useCase.Create(rBody)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 
-	byteData, err := json.Marshal(resultExercise)
+	byteData, err := json.Marshal(result)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("json encoding err: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 

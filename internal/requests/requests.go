@@ -6,12 +6,9 @@ type CreateExerciseRequestBody struct {
 	TitleEn     string `json:"title_en"`
 	TitleRu     string `json:"title_ru"`
 	TagIds      []int  `json:"tag_ids"`
-	File        io.ReadCloser
+	File        io.Reader
 	fileSize    int64
 	fileName    string
-	Image       io.ReadCloser
-	imageSize   int64
-	imageName   string
 	ContentType string
 }
 

@@ -11,12 +11,12 @@ import (
 )
 
 func main() {
+	// ------- CONFIGs from .env file -------
 	config := configs.Parse()
 	var err error
 
-	// S3 Storage
-	var s3 minio.IS3Storage
-	s3 = minio.NewStorage(&config.S3)
+	// ------- S3 MINIO -------
+	s3 := minio.NewStorage(&config.S3)
 	err = s3.Ping()
 	if err != nil {
 		log.Fatal(err)
@@ -28,10 +28,14 @@ func main() {
 		log.Fatal(err)
 	}
 
-	st := &storage.Storage{DB: db, S3: &s3}
+	st := &storage.Storage{DB: db, S3: s3}
 	mux := http.NewServeMux()
+
+	// ------- ROUTES -------
 	routes.RegisterExercisesRoutes(mux, st)
 	routes.RegisterTagsRoutes(mux, st.DB)
+
+	// ------- RSERVER -------
 
 	log.Fatal(http.ListenAndServe(config.Address, mux))
 }

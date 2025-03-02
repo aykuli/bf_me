@@ -22,9 +22,6 @@ func (euc *ExercisesUseCase) List() ([]*models.Exercise, error) {
 }
 
 func (euc *ExercisesUseCase) Create(req requests.CreateExerciseRequestBody) (*models.Exercise, error) {
-	//dst := req.GetFileName()
-	//imgPath, err :=
-
 	var tags []models.Tag
 	if len(req.TagIds) != 0 {
 		euc.storage.DB.Find(&tags, req.TagIds)
