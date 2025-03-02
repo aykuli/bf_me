@@ -3,28 +3,31 @@ package use_cases
 import (
 	"bf_me/internal/models"
 	"bf_me/internal/requests"
-	"gorm.io/gorm"
+	"bf_me/internal/storage"
 )
 
 type ExercisesUseCase struct {
-	db *gorm.DB
+	storage *storage.Storage
 }
 
-func NewExercisesUseCase(db *gorm.DB) *ExercisesUseCase {
-	return &ExercisesUseCase{db}
+func NewExercisesUseCase(st *storage.Storage) *ExercisesUseCase {
+	return &ExercisesUseCase{storage: st}
 }
 
 // todo docs, pagination, filter by fields, fetch tags
 func (euc *ExercisesUseCase) List() ([]*models.Exercise, error) {
 	var exercises []*models.Exercise
-	result := euc.db.Order("updated_at DESC").Find(&exercises)
+	result := euc.storage.DB.Order("updated_at DESC").Find(&exercises)
 	return exercises, result.Error
 }
 
 func (euc *ExercisesUseCase) Create(req requests.CreateExerciseRequestBody) (*models.Exercise, error) {
+	//dst := req.GetFileName()
+	//imgPath, err :=
+
 	var tags []models.Tag
-	if len(req.Tag_ids) != 0 {
-		euc.db.Find(&tags, req.Tag_ids)
+	if len(req.TagIds) != 0 {
+		euc.storage.DB.Find(&tags, req.TagIds)
 	}
 
 	var e = &models.Exercise{
@@ -33,6 +36,6 @@ func (euc *ExercisesUseCase) Create(req requests.CreateExerciseRequestBody) (*mo
 		FileUUID: "",
 		Tags:     tags,
 	}
-	result := euc.db.Create(e)
+	result := euc.storage.DB.Create(e)
 	return e, result.Error
 }

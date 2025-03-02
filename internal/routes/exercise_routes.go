@@ -2,23 +2,22 @@ package routes
 
 import (
 	"bf_me/internal/requests"
+	"bf_me/internal/storage"
 	"bf_me/internal/use_cases"
 	"encoding/json"
 	"net/http"
-
-	"gorm.io/gorm"
 )
 
 type ExerciseRouter struct {
-	db *gorm.DB
+	storage *storage.Storage
 }
 
-func newExercisesRouter(db *gorm.DB) *ExerciseRouter {
-	return &ExerciseRouter{db}
+func newExercisesRouter(st *storage.Storage) *ExerciseRouter {
+	return &ExerciseRouter{storage: st}
 }
 
-func RegisterExercisesRoutes(mux *http.ServeMux, db *gorm.DB) {
-	router := newExercisesRouter(db)
+func RegisterExercisesRoutes(mux *http.ServeMux, st *storage.Storage) {
+	router := newExercisesRouter(st)
 	mux.HandleFunc("/exercises/create", router.create)
 	mux.HandleFunc("/exercises/list", router.list)
 }
@@ -29,7 +28,7 @@ func (r *ExerciseRouter) list(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	useCase := use_cases.NewExercisesUseCase(r.db)
+	useCase := use_cases.NewExercisesUseCase(r.storage)
 	exercises, err := useCase.List()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
@@ -63,7 +62,7 @@ func (r *ExerciseRouter) create(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	useCase := use_cases.NewExercisesUseCase(r.db)
+	useCase := use_cases.NewExercisesUseCase(r.storage)
 	resultExercise, err := useCase.Create(exerciseBody)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
