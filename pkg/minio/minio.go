@@ -31,20 +31,19 @@ func (s *S3Storage) newConn() (*minio.Client, error) {
 		&minio.Options{Creds: credentials.NewStaticV4(s.config.AccessKey, s.config.SecretKey, "")})
 }
 
-func (s *S3Storage) Upload(dst string, src io.Reader) (string, error) {
+func (s *S3Storage) Upload(dst string, src io.Reader, contentType string) (string, error) {
 	client, err := s.newConn()
 	if err != nil {
 		return "", err
 	}
 	info, err := client.PutObject(context.Background(), s.config.Bucket, dst, src, -1, minio.PutObjectOptions{
-		ContentType:          "video/mp4",
+		ContentType:          contentType,
 		DisableContentSha256: true,
 	},
 	)
 	if err != nil {
 		return "", err
 	}
-	fmt.Printf("minio Upload place file info:%+v\n\n", info)
 	fmt.Printf("File %s was saved", s.config.Bucket+"/"+info.Key)
 	return s.config.Bucket + "/" + info.Key, nil
 }

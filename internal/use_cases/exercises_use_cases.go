@@ -2,7 +2,6 @@ package use_cases
 
 import (
 	"bf_me/internal/models"
-	"bf_me/internal/requests"
 	"bf_me/internal/storage"
 )
 
@@ -21,18 +20,13 @@ func (euc *ExercisesUseCase) List() ([]*models.Exercise, error) {
 	return exercises, result.Error
 }
 
-func (euc *ExercisesUseCase) Create(req requests.CreateExerciseRequestBody) (*models.Exercise, error) {
-	var tags []models.Tag
-	if len(req.TagIds) != 0 {
-		euc.storage.DB.Find(&tags, req.TagIds)
-	}
+// @note tagIds is the string, containing tag ids separated by comma
+func (euc *ExercisesUseCase) Create(e *models.Exercise, tagIds string) (*models.Exercise, error) {
+	//var tags []models.Tag
+	//if len(req.TagIds) != 0 {
+	//	euc.storage.DB.Find(&tags, req.TagIds)
+	//}
 
-	var e = &models.Exercise{
-		TitleEn:  req.TitleEn,
-		TitleRu:  req.TitleRu,
-		FileUUID: "",
-		Tags:     tags,
-	}
 	result := euc.storage.DB.Create(e)
 	return e, result.Error
 }

@@ -6,6 +6,6 @@ type Exercise struct {
 	gorm.Model
 	TitleEn  string `gorm:"unique;not null"`
 	TitleRu  string `gorm:"unique;not null"`
-	FileUUID string
-	Tags     []Tag `gorm:"many2many:exercises_tags;"`
+	Filename string `gorm:"unique;not null"`
+	Tags     []Tag  `gorm:"many2many:exercises_tags;"`
 }
