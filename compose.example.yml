@@ -1,7 +1,6 @@
 services:
   postgres:
     image: postgres:17
-    container_name: bf_db
     environment:
       POSTGRES_USER: bfdev
       POSTGRES_DB: bfdev
@@ -9,3 +8,14 @@ services:
       - ./docker/volumes/postgresql/data:/var/lib/postgresql/data
     ports:
       - 5433:5432
+  minio:
+    image: minio/minio
+    ports:
+      - 9000:9000
+      - 9001:9001
+    volumes:
+      - ./docker/volumes/minio/data:/data
+    environment:
+      MINIO_ACCESS_KEY: minio_access_key
+      MINIO_SECRET_KEY: minio_secret_key
+    command: server --address 0.0.0.0:9000 --console-address ":9001" /data

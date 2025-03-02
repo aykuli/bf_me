@@ -17,9 +17,8 @@ func New(uri string) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.Open(uri), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect database %s", err)
-
 	}
-
+	fmt.Println("Successfully connected to database")
 	err = db.AutoMigrate(&models.Exercise{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate exercises table %s", err)
