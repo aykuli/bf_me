@@ -6,8 +6,11 @@
 
 todos today:
 
-* add server
-* router handler
-* add exercise and tag endpoints
+* add  minio
+* file saving
+
+* router
+  * pagination for list
+  * presenters
 
 </details>
