@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -46,6 +47,23 @@ func (s *S3Storage) Upload(dst string, src io.Reader, contentType string) (strin
 	}
 	fmt.Printf("File %s was saved", s.config.Bucket+"/"+info.Key)
 	return s.config.Bucket + "/" + info.Key, nil
+}
+
+func (s *S3Storage) Delete(fname string) error {
+	client, err := s.newConn()
+	if err != nil {
+		return err
+	}
+	err = client.RemoveObject(context.Background(),
+		s.config.Bucket,
+		strings.TrimPrefix(fname, s.config.Bucket+"/"), minio.RemoveObjectOptions{
+			GovernanceBypass: false, ForceDelete: true,
+		},
+	)
+	if err == nil {
+		fmt.Printf("File %s was succesfully removed", fname)
+	}
+	return err
 }
 
 // Ping For debug purpose

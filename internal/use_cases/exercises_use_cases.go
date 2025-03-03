@@ -2,7 +2,12 @@ package use_cases
 
 import (
 	"bf_me/internal/models"
+	"bf_me/internal/requests"
 	"bf_me/internal/storage"
+	"fmt"
+	"path/filepath"
+	"regexp"
+	"strings"
 )
 
 type ExercisesUseCase struct {
@@ -21,12 +26,86 @@ func (euc *ExercisesUseCase) List() ([]*models.Exercise, error) {
 }
 
 // @note tagIds is the string, containing tag ids separated by comma
-func (euc *ExercisesUseCase) Create(e *models.Exercise, tagIds string) (*models.Exercise, error) {
+func (euc *ExercisesUseCase) Create(req *requests.ExerciseRequest) (*models.Exercise, error) {
+	//var tags []models.Tag
+	//if len(req.TagIds) != 0 {
+	//	euc.storage.DB.Find(&tags, req.TagIds)
+	//}
+	e := req.Exercise
+	path, err := euc.storage.S3.Upload(euc.makeFilename(e.TitleEn, req.FileHeader.Filename), *req.File, req.FileHeader.Header.Get("Content-Type"))
+	if err != nil {
+		return nil, fmt.Errorf("minio upload file err: %s", err)
+	}
+	e.Filename = path
+	result := euc.storage.DB.Create(e)
+	return e, result.Error
+}
+
+func (euc *ExercisesUseCase) Update(id int, req *requests.ExerciseRequest) (*models.Exercise, error) {
 	//var tags []models.Tag
 	//if len(req.TagIds) != 0 {
 	//	euc.storage.DB.Find(&tags, req.TagIds)
 	//}
 
-	result := euc.storage.DB.Create(e)
+	var e *models.Exercise
+	result := euc.storage.DB.First(&e, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	oldFileName := e.Filename
+	if req.Exercise.TitleEn != "" {
+		e.TitleEn = req.Exercise.TitleEn
+	}
+	if req.Exercise.TitleRu != "" {
+		e.TitleEn = req.Exercise.TitleRu
+	}
+	if req.File != nil {
+		path, err := euc.storage.S3.Upload(euc.makeFilename(e.TitleEn, req.FileHeader.Filename), *req.File, req.FileHeader.Header.Get("Content-Type"))
+		if err != nil {
+			return nil, fmt.Errorf("minio upload file err: %s", err)
+		}
+		e.Filename = path
+	}
+
+	result = euc.storage.DB.Save(e)
+	if result.Error == nil && req.File != nil {
+		err := euc.storage.S3.Delete(oldFileName)
+		if err != nil {
+			//todo write to logger when it will be created
+			fmt.Printf("minio delete file err: %s\n", err)
+		}
+	}
 	return e, result.Error
+}
+
+func (euc *ExercisesUseCase) makeFilename(title, filename string) string {
+	sanitized := euc.sanitizeFilename(title)
+	return fmt.Sprintf("%s%s", sanitized, filepath.Ext(filename))
+}
+
+func (euc *ExercisesUseCase) sanitizeFilename(filename string) string {
+	// Replace unsupported characters with underscores
+	reg := regexp.MustCompile(`[^a-zA-Z0-9_.-]`)
+	sanitized := reg.ReplaceAllString(filename, "_")
+	sanitized = strings.ToLower(sanitized)
+
+	// Trim leading and trailing spaces
+	sanitized = strings.TrimSpace(sanitized)
+
+	// Ensure the filename doesn't exceed the maximum length (255 characters)
+	if len(sanitized) > 255 {
+		sanitized = sanitized[:255]
+	}
+
+	// Ensure the filename is not empty
+	if sanitized == "" {
+		sanitized = "unnamed_file"
+	}
+
+	return sanitized
+}
+
+func (euc *ExercisesUseCase) Delete(id int) error {
+	result := euc.storage.DB.Delete(&models.Exercise{}, id)
+	return result.Error
 }
