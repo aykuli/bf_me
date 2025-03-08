@@ -14,27 +14,28 @@ import (
 )
 
 type ExercisesRouter struct {
-	storage   *storage.Storage
-	presenter *presenters.Presenter
+	presenter   *presenters.Presenter
+	useCase     *use_cases.ExercisesUseCase
+	authUseCase *use_cases.SessionsUseCase
 }
 
 func newExercisesRouter(st *storage.Storage) *ExercisesRouter {
 	return &ExercisesRouter{
-		storage:   st,
-		presenter: presenters.NewPresenter(),
+		presenter:   presenters.NewPresenter(),
+		useCase:     use_cases.NewExercisesUseCase(st),
+		authUseCase: use_cases.NewSessionsUseCase(st),
 	}
 }
 
 func RegisterExercisesRoutes(mux *http.ServeMux, st *storage.Storage) {
 	router := newExercisesRouter(st)
-	mux.HandleFunc("/exercises/create", router.create)
-	mux.HandleFunc("/exercises/list", router.list)
-	mux.HandleFunc("/exercises/", router.mutate)
+	mux.HandleFunc("/exercises/create", AuthMiddleware(router.authUseCase, router.create))
+	mux.HandleFunc("/exercises/list", AuthMiddleware(router.authUseCase, router.list))
+	mux.HandleFunc("/exercises/", AuthMiddleware(router.authUseCase, router.mutate))
 }
 
 func (router *ExercisesRouter) list(w http.ResponseWriter, r *http.Request) {
-	useCase := use_cases.NewExercisesUseCase(router.storage)
-	result, err := useCase.List()
+	result, err := router.useCase.List()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
@@ -78,7 +79,6 @@ func (router *ExercisesRouter) create(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	useCase := use_cases.NewExercisesUseCase(router.storage)
 	req := requests.CreateExerciseRequest{
 		Exercise: &models.Exercise{
 			TitleEn: r.FormValue("title_en"),
@@ -88,7 +88,7 @@ func (router *ExercisesRouter) create(w http.ResponseWriter, r *http.Request) {
 		File:       &file,
 		FileHeader: header,
 	}
-	result, err := useCase.Create(&req)
+	result, err := router.useCase.Create(&req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
@@ -139,8 +139,7 @@ func (router *ExercisesRouter) update(id int, w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	useCase := use_cases.NewExercisesUseCase(router.storage)
-	result, err := useCase.Update(id, &req)
+	result, err := router.useCase.Update(id, &req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
@@ -160,8 +159,7 @@ func (router *ExercisesRouter) update(id int, w http.ResponseWriter, r *http.Req
 }
 
 func (router *ExercisesRouter) delete(id int, w http.ResponseWriter, r *http.Request) {
-	useCase := use_cases.NewExercisesUseCase(router.storage)
-	err := useCase.Delete(id)
+	err := router.useCase.Delete(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return

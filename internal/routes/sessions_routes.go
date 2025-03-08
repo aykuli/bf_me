@@ -12,14 +12,16 @@ import (
 )
 
 type SessionRouter struct {
-	storage   *storage.Storage
-	presenter *presenters.Presenter
+	presenter   *presenters.Presenter
+	useCase     *use_cases.SessionsUseCase
+	authUseCase *use_cases.SessionsUseCase
 }
 
 func NewSessionsRouter(st *storage.Storage) *SessionRouter {
 	return &SessionRouter{
-		storage:   st,
-		presenter: presenters.NewPresenter(),
+		useCase:     use_cases.NewSessionsUseCase(st),
+		authUseCase: use_cases.NewSessionsUseCase(st),
+		presenter:   presenters.NewPresenter(),
 	}
 }
 
@@ -27,7 +29,7 @@ func RegisterSessionsRoutes(mux *http.ServeMux, st *storage.Storage) {
 	router := NewSessionsRouter(st)
 	mux.HandleFunc("/register", router.register)
 	mux.HandleFunc("/login", router.login)
-	mux.HandleFunc("/logout", router.logout)
+	mux.HandleFunc("/logout", AuthMiddleware(router.authUseCase, router.logout))
 }
 
 func (router *SessionRouter) register(w http.ResponseWriter, r *http.Request) {
@@ -42,8 +44,7 @@ func (router *SessionRouter) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	useCase := use_cases.NewSessionsUseCase(router.storage)
-	session, err := useCase.CreateUser(&req)
+	session, err := router.useCase.CreateUser(&req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
@@ -68,8 +69,7 @@ func (router *SessionRouter) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	useCase := use_cases.NewSessionsUseCase(router.storage)
-	session, err := useCase.Create(&req)
+	session, err := router.useCase.Create(&req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
@@ -92,8 +92,7 @@ func (router *SessionRouter) logout(w http.ResponseWriter, r *http.Request) {
 	bearerToken := r.Header.Get("Authorization")
 	sessionId := strings.TrimPrefix(bearerToken, "Token token=")
 
-	useCase := use_cases.NewSessionsUseCase(router.storage)
-	err := useCase.Delete(sessionId)
+	err := router.useCase.Delete(sessionId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return

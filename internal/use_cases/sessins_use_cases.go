@@ -70,3 +70,12 @@ func (euc *SessionsUseCase) Delete(sessionId string) error {
 	result = euc.storage.DB.Where("user_id = ?", session.User.ID).Delete(&sessions)
 	return result.Error
 }
+
+func (euc *SessionsUseCase) Find(sessionId string) (*models.Session, error) {
+	var session *models.Session
+	result := euc.storage.DB.First(&session, sessionId)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return session, nil
+}
