@@ -13,13 +13,13 @@ import (
 	"strings"
 )
 
-type ExerciseRouter struct {
+type ExercisesRouter struct {
 	storage   *storage.Storage
 	presenter *presenters.Presenter
 }
 
-func newExercisesRouter(st *storage.Storage) *ExerciseRouter {
-	return &ExerciseRouter{
+func newExercisesRouter(st *storage.Storage) *ExercisesRouter {
+	return &ExercisesRouter{
 		storage:   st,
 		presenter: presenters.NewPresenter(),
 	}
@@ -32,8 +32,7 @@ func RegisterExercisesRoutes(mux *http.ServeMux, st *storage.Storage) {
 	mux.HandleFunc("/exercises/", router.mutate)
 }
 
-func (router *ExerciseRouter) list(w http.ResponseWriter, req *http.Request) {
-
+func (router *ExercisesRouter) list(w http.ResponseWriter, r *http.Request) {
 	useCase := use_cases.NewExercisesUseCase(router.storage)
 	result, err := useCase.List()
 	if err != nil {
@@ -52,12 +51,11 @@ func (router *ExerciseRouter) list(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	if _, err = w.Write(byteData); err != nil {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-
 }
 
-func (router *ExerciseRouter) create(w http.ResponseWriter, r *http.Request) {
+func (router *ExercisesRouter) create(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "No such endpoint", http.StatusNotFound)
 		return
@@ -105,12 +103,11 @@ func (router *ExerciseRouter) create(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 
 	if _, err = w.Write(byteData); err != nil {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func (router *ExerciseRouter) mutate(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("mutate")
+func (router *ExercisesRouter) mutate(w http.ResponseWriter, r *http.Request) {
 	// Extract the ID from the URL path
 	path := strings.TrimPrefix(r.URL.Path, "/exercises/")
 	id := strings.TrimSuffix(path, "/")
@@ -135,7 +132,7 @@ func (router *ExerciseRouter) mutate(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (router *ExerciseRouter) update(id int, w http.ResponseWriter, r *http.Request) {
+func (router *ExercisesRouter) update(id int, w http.ResponseWriter, r *http.Request) {
 	var req requests.UpdateExerciseRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
@@ -162,7 +159,7 @@ func (router *ExerciseRouter) update(id int, w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (router *ExerciseRouter) delete(id int, w http.ResponseWriter, r *http.Request) {
+func (router *ExercisesRouter) delete(id int, w http.ResponseWriter, r *http.Request) {
 	useCase := use_cases.NewExercisesUseCase(router.storage)
 	err := useCase.Delete(id)
 	if err != nil {
@@ -171,6 +168,6 @@ func (router *ExerciseRouter) delete(id int, w http.ResponseWriter, r *http.Requ
 	}
 	w.WriteHeader(http.StatusOK)
 	if _, err = w.Write([]byte("successfully deleted")); err != nil {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
