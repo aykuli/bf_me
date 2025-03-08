@@ -33,10 +33,6 @@ func RegisterExercisesRoutes(mux *http.ServeMux, st *storage.Storage) {
 }
 
 func (router *ExerciseRouter) list(w http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodGet {
-		http.Error(w, "No such endpoint", http.StatusNotFound)
-		return
-	}
 
 	useCase := use_cases.NewExercisesUseCase(router.storage)
 	result, err := useCase.List()
@@ -52,6 +48,7 @@ func (router *ExerciseRouter) list(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(http.StatusOK)
 
 	if _, err = w.Write(byteData); err != nil {
@@ -84,7 +81,7 @@ func (router *ExerciseRouter) create(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	useCase := use_cases.NewExercisesUseCase(router.storage)
-	req := requests.ExerciseRequest{
+	req := requests.CreateExerciseRequest{
 		Exercise: &models.Exercise{
 			TitleEn: r.FormValue("title_en"),
 			TitleRu: r.FormValue("title_ru"),
@@ -139,39 +136,13 @@ func (router *ExerciseRouter) mutate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (router *ExerciseRouter) update(id int, w http.ResponseWriter, r *http.Request) {
-	fmt.Println("update")
-
-	err := r.ParseMultipartForm(32 << 20) // 32MB limit
-	if err != nil {
-		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+	var req requests.UpdateExerciseRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
-	}
-	file, header, _ := r.FormFile("file")
-	fmt.Println("file", file)
-	fmt.Println("header", header)
-
-	if file != nil {
-		defer func() {
-			err = file.Close()
-			if err != nil {
-				fmt.Printf("defer file close err: %s", err)
-			}
-		}()
 	}
 
 	useCase := use_cases.NewExercisesUseCase(router.storage)
-	req := requests.ExerciseRequest{
-		Exercise: &models.Exercise{
-			TitleEn: r.FormValue("title_en"),
-			TitleRu: r.FormValue("title_ru"),
-		},
-		TagIds: r.FormValue("tag_ids"),
-	}
-	if file != nil && header != nil {
-		req.File = &file
-		req.FileHeader = header
-	}
-
 	result, err := useCase.Update(id, &req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)

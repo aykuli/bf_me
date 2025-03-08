@@ -26,7 +26,7 @@ func (euc *ExercisesUseCase) List() ([]*models.Exercise, error) {
 }
 
 // @note tagIds is the string, containing tag ids separated by comma
-func (euc *ExercisesUseCase) Create(req *requests.ExerciseRequest) (*models.Exercise, error) {
+func (euc *ExercisesUseCase) Create(req *requests.CreateExerciseRequest) (*models.Exercise, error) {
 	//var tags []models.Tag
 	//if len(req.TagIds) != 0 {
 	//	euc.storage.DB.Find(&tags, req.TagIds)
@@ -41,7 +41,7 @@ func (euc *ExercisesUseCase) Create(req *requests.ExerciseRequest) (*models.Exer
 	return e, result.Error
 }
 
-func (euc *ExercisesUseCase) Update(id int, req *requests.ExerciseRequest) (*models.Exercise, error) {
+func (euc *ExercisesUseCase) Update(id int, req *requests.UpdateExerciseRequestBody) (*models.Exercise, error) {
 	//var tags []models.Tag
 	//if len(req.TagIds) != 0 {
 	//	euc.storage.DB.Find(&tags, req.TagIds)
@@ -49,32 +49,10 @@ func (euc *ExercisesUseCase) Update(id int, req *requests.ExerciseRequest) (*mod
 
 	var e *models.Exercise
 	result := euc.storage.DB.First(&e, id)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-	oldFileName := e.Filename
-	if req.Exercise.TitleEn != "" {
-		e.TitleEn = req.Exercise.TitleEn
-	}
-	if req.Exercise.TitleRu != "" {
-		e.TitleEn = req.Exercise.TitleRu
-	}
-	if req.File != nil {
-		path, err := euc.storage.S3.Upload(euc.makeFilename(e.TitleEn, req.FileHeader.Filename), *req.File, req.FileHeader.Header.Get("Content-Type"))
-		if err != nil {
-			return nil, fmt.Errorf("minio upload file err: %s", err)
-		}
-		e.Filename = path
-	}
+	e.TitleRu = req.TitleRu
+	e.TitleEn = req.TitleEn
 
 	result = euc.storage.DB.Save(e)
-	if result.Error == nil && req.File != nil {
-		err := euc.storage.S3.Delete(oldFileName)
-		if err != nil {
-			//todo write to logger when it will be created
-			fmt.Printf("minio delete file err: %s\n", err)
-		}
-	}
 	return e, result.Error
 }
 
@@ -106,6 +84,15 @@ func (euc *ExercisesUseCase) sanitizeFilename(filename string) string {
 }
 
 func (euc *ExercisesUseCase) Delete(id int) error {
-	result := euc.storage.DB.Delete(&models.Exercise{}, id)
+	var e *models.Exercise
+	result := euc.storage.DB.First(&e, id)
+
+	spl := strings.Split(e.Filename, "/")
+	err := euc.storage.S3.Delete(spl[0])
+	if err != nil {
+		fmt.Printf("minio file delete err: %s", err)
+	}
+
+	result = euc.storage.DB.Delete(&models.Exercise{}, id)
 	return result.Error
 }

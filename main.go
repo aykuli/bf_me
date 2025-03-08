@@ -6,6 +6,7 @@ import (
 	"bf_me/internal/storage"
 	"bf_me/pkg/database"
 	"bf_me/pkg/minio"
+	"github.com/rs/cors"
 	"log"
 	"net/http"
 )
@@ -35,7 +36,13 @@ func main() {
 	routes.RegisterExercisesRoutes(mux, st)
 	routes.RegisterTagsRoutes(mux, st.DB)
 
-	// ------- RSERVER -------
-
-	log.Fatal(http.ListenAndServe(config.Address, mux))
+	// ------- SERVER -------
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000", "localhost:3000", "localhost:3000", "http://localhost:3001"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization", "Access-Control-Allow-Origin"},
+		AllowCredentials: true,
+		Debug:            true,
+	})
+	log.Fatal(http.ListenAndServe(config.Address, c.Handler(mux)))
 }
