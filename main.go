@@ -33,6 +33,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	// ------- ROUTES -------
+	routes.RegisterSessionsRoutes(mux, st)
 	routes.RegisterExercisesRoutes(mux, st)
 	routes.RegisterTagsRoutes(mux, st.DB)
 
