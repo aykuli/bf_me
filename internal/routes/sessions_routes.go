@@ -91,13 +91,13 @@ func (router *SessionRouter) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (router *SessionRouter) logout(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodDelete {
 		http.Error(w, "No such endpoint", http.StatusNotFound)
 		return
 	}
 
 	bearerToken := r.Header.Get("Authorization")
-	sessionId := strings.TrimPrefix(bearerToken, "Token token=")
+	sessionId := strings.TrimPrefix(bearerToken, "Bearer token=")
 
 	err := router.useCase.Delete(sessionId)
 	if err != nil {

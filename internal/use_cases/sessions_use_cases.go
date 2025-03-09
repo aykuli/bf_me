@@ -36,45 +36,40 @@ func (euc *SessionsUseCase) CreateUser(req requests.UserRequestBody) (*models.Se
 }
 
 func (euc *SessionsUseCase) Create(req *requests.UserRequestBody) (*models.Session, error) {
-	var u *models.User
+	var u models.User
 	result := euc.storage.DB.Where("login = ?", req.Login).First(&u)
 	if result.Error != nil {
 		return nil, fmt.Errorf("no such user error: %s", result.Error)
 	}
 
-	passwordHash, err := services.HashPassword(req.Password)
-	if err != nil {
-		return nil, err
-	}
-
-	wrong := services.WrongPassword(passwordHash, u.PasswordHash)
+	wrong := services.WrongPassword(req.Password, u.PasswordHash)
 	if wrong {
 		return nil, fmt.Errorf("wrong password")
 	}
 	var sessions []models.Session
 	euc.storage.DB.Where("user_id = ?", u.ID).Delete(&sessions)
 
-	var s *models.Session
-	s.User = *u
-	result = euc.storage.DB.Create(s)
-	return s, result.Error
+	var s models.Session
+	s.User = u
+	result = euc.storage.DB.Create(&s)
+	return &s, result.Error
 }
 
 func (euc *SessionsUseCase) Delete(sessionId string) error {
 	var session models.Session
-	result := euc.storage.DB.First(&session, sessionId)
+	result := euc.storage.DB.Where("id = ?", sessionId).First(&session)
 	if result.Error != nil {
 		return result.Error
 	}
 
 	var sessions []models.Session
-	result = euc.storage.DB.Where("user_id = ?", session.User.ID).Delete(&sessions)
+	result = euc.storage.DB.Where("user_id = ?", session.UserID).Delete(&sessions)
 	return result.Error
 }
 
 func (euc *SessionsUseCase) Find(sessionId string) (*models.Session, error) {
 	var session *models.Session
-	result := euc.storage.DB.First(&session, sessionId)
+	result := euc.storage.DB.Where("id = ?", sessionId).First(&session)
 	if result.Error != nil {
 		return nil, result.Error
 	}

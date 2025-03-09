@@ -2,7 +2,6 @@ package routes
 
 import (
 	"bf_me/internal/use_cases"
-	"fmt"
 	"net/http"
 	"strings"
 )
@@ -14,12 +13,12 @@ func AuthMiddleware(uc *use_cases.SessionsUseCase, next http.HandlerFunc) http.H
 			http.Error(w, "Unauthorized", http.StatusForbidden)
 			return
 		}
-		sessionId := strings.TrimPrefix(bearerToken, "Token token=")
-		fmt.Printf("--------\n\nsession: %s\n\n", sessionId)
-		session, _ := uc.Find(sessionId)
+		sessionId := strings.TrimPrefix(bearerToken, "Bearer token=")
+		session, err := uc.Find(sessionId)
 
-		if session != nil {
+		if session != nil && err == nil {
 			next.ServeHTTP(w, r)
+			return
 		}
 		http.Error(w, "Unauthorized", http.StatusForbidden)
 	}
