@@ -16,22 +16,23 @@ func NewSessionsUseCase(st *storage.Storage) *SessionsUseCase {
 	return &SessionsUseCase{storage: st}
 }
 
-func (euc *SessionsUseCase) CreateUser(req *requests.UserRequestBody) (*models.Session, error) {
-	var u *models.User
+func (euc *SessionsUseCase) CreateUser(req requests.UserRequestBody) (*models.Session, error) {
+	var u models.User
 	var err error
 	u.Login = req.Login
 	u.PasswordHash, err = services.HashPassword(req.Password)
 	if err != nil {
 		return nil, fmt.Errorf("password error: %s", err)
 	}
-	result := euc.storage.DB.Create(u)
+
+	result := euc.storage.DB.Create(&u)
 	if result.Error != nil {
 		return nil, fmt.Errorf("create user error: %s", result.Error)
 	}
-	var s *models.Session
-	s.User = *u
-	result = euc.storage.DB.Create(s)
-	return s, result.Error
+	var s models.Session
+	s.User = u
+	result = euc.storage.DB.Create(&s)
+	return &s, result.Error
 }
 
 func (euc *SessionsUseCase) Create(req *requests.UserRequestBody) (*models.Session, error) {

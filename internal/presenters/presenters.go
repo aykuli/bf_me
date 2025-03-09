@@ -2,6 +2,7 @@ package presenters
 
 import (
 	"bf_me/internal/models"
+	"github.com/jackc/pgx/v5/pgtype"
 	"time"
 )
 
@@ -44,4 +45,12 @@ func (p *Presenter) Exercises(es []*models.Exercise) []*Exercise {
 		}
 	}
 	return exercises
+}
+
+type Session struct {
+	Token pgtype.UUID `json:"token"`
+}
+
+func (p *Presenter) Session(s *models.Session) *Session {
+	return &Session{Token: s.ID}
 }
