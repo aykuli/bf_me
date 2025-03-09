@@ -10,13 +10,17 @@ import (
 func AuthMiddleware(uc *use_cases.SessionsUseCase, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bearerToken := r.Header.Get("Authorization")
+		if bearerToken == "" {
+			http.Error(w, "Unauthorized", http.StatusForbidden)
+			return
+		}
 		sessionId := strings.TrimPrefix(bearerToken, "Token token=")
+		fmt.Printf("--------\n\nsession: %s\n\n", sessionId)
+		session, _ := uc.Find(sessionId)
 
-		session, err := uc.Find(sessionId)
 		if session != nil {
 			next.ServeHTTP(w, r)
 		}
-
-		fmt.Println("session wasnt found", err)
+		http.Error(w, "Unauthorized", http.StatusForbidden)
 	}
 }
