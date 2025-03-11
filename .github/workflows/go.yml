@@ -5,40 +5,40 @@ name: Go
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.20'
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.24.0"
 
-    - name: Build
-      env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        PORT: ${{ secrets.PORT }}
-        MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
-        MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
-        MINIO_URL: ${{ secrets.MINIO_URL }}
-        MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
-      run: go build -o fitmeapp .
+      - name: Build
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PORT: ${{ secrets.PORT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+          MINIO_URL: ${{ secrets.MINIO_URL }}
+          MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
+        run: |
+          go build -o fitmeapp .
+          ls -alh
 
-
-    - name: Deploy
-      uses: appleboy/scp-action@v0.1.7
-      if: github.ref == 'refs/heads/master'
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        password: ${{ secrets.PASSWORD }}
-        port: ${{ secrets.PORT }}
-        source: build/*
-        target: ${{ secrets.REMOTE_PROJECT_FOLDER }}
+      - name: Deploy
+        uses: appleboy/scp-action@v0.1.7
+        if: github.ref == 'refs/heads/master'
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          source: fitmeapp
+          target: ${{ secrets.REMOTE_PROJECT_FOLDER }}

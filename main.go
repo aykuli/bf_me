@@ -20,13 +20,13 @@ func main() {
 	s3 := minio.NewStorage(&config.S3)
 	err = s3.Ping()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	// ------- DATABASE -------
 	db, err := database.New(config.DatabaseURI)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	st := &storage.Storage{DB: db, S3: s3}
@@ -39,11 +39,9 @@ func main() {
 
 	// ------- SERVER -------
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000", "localhost:3000", "localhost:3000", "http://localhost:3001"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization", "Access-Control-Allow-Origin"},
 		AllowCredentials: true,
-		Debug:            true,
 	})
 	log.Fatal(http.ListenAndServe(config.Address, c.Handler(mux)))
 }
