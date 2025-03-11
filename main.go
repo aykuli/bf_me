@@ -20,13 +20,13 @@ func main() {
 	s3 := minio.NewStorage(&config.S3)
 	err = s3.Ping()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	// ------- DATABASE -------
 	db, err := database.New(config.DatabaseURI)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	st := &storage.Storage{DB: db, S3: s3}
