@@ -6,11 +6,7 @@
 
 todos today:
 
-* add  minio
-* file saving
-
 * router
   * pagination for list
-  * presenters
 
 </details>

@@ -19,8 +19,8 @@ func newTagsRouter(db *gorm.DB) *TagsRouter {
 
 func RegisterTagsRoutes(mux *http.ServeMux, db *gorm.DB) {
 	router := newTagsRouter(db)
-	mux.HandleFunc("/tags/create", router.create)
-	mux.HandleFunc("/tags/list", router.list)
+	mux.HandleFunc("/api/v1", router.create)
+	mux.HandleFunc("/api/v1/tags/list", router.list)
 }
 
 func (r *TagsRouter) list(w http.ResponseWriter, req *http.Request) {

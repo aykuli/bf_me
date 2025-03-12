@@ -29,9 +29,9 @@ func newExercisesRouter(st *storage.Storage) *ExercisesRouter {
 
 func RegisterExercisesRoutes(mux *http.ServeMux, st *storage.Storage) {
 	router := newExercisesRouter(st)
-	mux.HandleFunc("/exercises/create", AuthMiddleware(router.authUseCase, router.create))
-	mux.HandleFunc("/exercises/list", AuthMiddleware(router.authUseCase, router.list))
-	mux.HandleFunc("/exercises/", AuthMiddleware(router.authUseCase, router.mutate))
+	mux.HandleFunc("/api/v1/exercises/create", AuthMiddleware(router.authUseCase, router.create))
+	mux.HandleFunc("/api/v1/exercises/list", AuthMiddleware(router.authUseCase, router.list))
+	mux.HandleFunc("/api/v1/exercises/", AuthMiddleware(router.authUseCase, router.mutate))
 }
 
 func (router *ExercisesRouter) list(w http.ResponseWriter, r *http.Request) {
