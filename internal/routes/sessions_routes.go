@@ -25,9 +25,9 @@ func NewSessionsRouter(st *storage.Storage) *SessionRouter {
 
 func RegisterSessionsRoutes(mux *http.ServeMux, st *storage.Storage) {
 	router := NewSessionsRouter(st)
-	mux.HandleFunc("/vragneproidet", router.register)
-	mux.HandleFunc("/login", router.login)
-	mux.HandleFunc("/logout", AuthMiddleware(router.useCase, router.logout))
+	mux.HandleFunc("/api/v1/vragneproidet", router.register)
+	mux.HandleFunc("/api/v1/login", router.login)
+	mux.HandleFunc("/api/v1/logout", AuthMiddleware(router.useCase, router.logout))
 }
 
 func (router *SessionRouter) register(w http.ResponseWriter, r *http.Request) {
