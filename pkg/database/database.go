@@ -28,6 +28,10 @@ func New(uri string) (*gorm.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate exercises table %s", err)
 	}
+	err = db.AutoMigrate(&models.Block{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to migrate blocks table %s", err)
+	}
 
 	err = db.AutoMigrate(&models.User{})
 	if err != nil {
