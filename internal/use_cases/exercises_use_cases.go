@@ -18,19 +18,13 @@ func NewExercisesUseCase(st *storage.Storage) *ExercisesUseCase {
 	return &ExercisesUseCase{storage: st}
 }
 
-// todo docs, pagination, filter by fields, fetch tags
 func (euc *ExercisesUseCase) List() ([]*models.Exercise, error) {
 	var exercises []*models.Exercise
 	result := euc.storage.DB.Order("updated_at DESC").Find(&exercises)
 	return exercises, result.Error
 }
 
-// @note tagIds is the string, containing tag ids separated by comma
 func (euc *ExercisesUseCase) Create(req *requests.CreateExerciseRequest) (*models.Exercise, error) {
-	//var tags []models.Tag
-	//if len(req.TagIds) != 0 {
-	//	euc.storage.DB.Find(&tags, req.TagIds)
-	//}
 	e := req.Exercise
 	path, err := euc.storage.S3.Upload(euc.makeFilename(e.TitleEn, req.FileHeader.Filename), *req.File, req.FileHeader.Header.Get("Content-Type"))
 	if err != nil {
@@ -41,12 +35,13 @@ func (euc *ExercisesUseCase) Create(req *requests.CreateExerciseRequest) (*model
 	return e, result.Error
 }
 
-func (euc *ExercisesUseCase) Update(id int, req *requests.UpdateExerciseRequestBody) (*models.Exercise, error) {
-	//var tags []models.Tag
-	//if len(req.TagIds) != 0 {
-	//	euc.storage.DB.Find(&tags, req.TagIds)
-	//}
+func (euc *ExercisesUseCase) Find(id int) (*models.Exercise, error) {
+	var e models.Exercise
+	result := euc.storage.DB.Preload("Exercises").First(&e, id)
+	return &e, result.Error
+}
 
+func (euc *ExercisesUseCase) Update(id int, req *requests.UpdateExerciseRequestBody) (*models.Exercise, error) {
 	var e *models.Exercise
 	result := euc.storage.DB.First(&e, id)
 	e.TitleRu = req.TitleRu
