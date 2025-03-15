@@ -12,6 +12,7 @@ type Exercise struct {
 	TitleEn   string    `json:"titleEn"`
 	TitleRu   string    `json:"titleRu"`
 	Filename  string    `json:"filename"`
+	Tips      []string  `json:"tips"`
 	Tags      []string  `json:"tagIds,omitempty;"`
 }
 
@@ -30,6 +31,7 @@ func (p *Presenter) Exercise(e *models.Exercise) *Exercise {
 		TitleEn:   e.TitleEn,
 		TitleRu:   e.TitleRu,
 		Filename:  e.Filename,
+		Tips:      e.Tips,
 	}
 }
 
@@ -42,6 +44,7 @@ func (p *Presenter) Exercises(es []*models.Exercise) []*Exercise {
 			TitleEn:   e.TitleEn,
 			TitleRu:   e.TitleRu,
 			Filename:  e.Filename,
+			Tips:      e.Tips,
 		}
 	}
 	return exercises

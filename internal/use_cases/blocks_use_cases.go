@@ -14,9 +14,9 @@ func NewBlocksUseCase(st *storage.Storage) *BlocksUseCase {
 	return &BlocksUseCase{storage: st}
 }
 
-func (euc *BlocksUseCase) List() ([]*models.Block, error) {
+func (euc *BlocksUseCase) List(req *requests.FilterBlocksRequestBody) ([]*models.Block, error) {
 	var blocks []*models.Block
-	result := euc.storage.DB.Preload("Exercises").Order("updated_at DESC").Find(&blocks)
+	result := euc.storage.DB.Preload("Exercises").Where("draft = ?", req.Draft).Order("updated_at DESC").Find(&blocks)
 	return blocks, result.Error
 }
 

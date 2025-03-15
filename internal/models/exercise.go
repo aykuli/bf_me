@@ -1,11 +1,15 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"github.com/lib/pq"
+	"gorm.io/gorm"
+)
 
 type Exercise struct {
 	gorm.Model
-	TitleEn  string `gorm:"unique;not null"`
-	TitleRu  string `gorm:"unique;not null"`
-	Filename string `gorm:"unique;not null"`
-	Tags     []Tag  `gorm:"many2many:exercises_tags;"`
+	TitleEn  string         `gorm:"not null"`
+	TitleRu  string         `gorm:"not null"`
+	Filename string         `gorm:"unique;not null"`
+	Tips     pq.StringArray `gorm:"type:text[]"`
+	Tags     []Tag          `gorm:"many2many:exercises_tags;"`
 }

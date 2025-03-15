@@ -34,8 +34,14 @@ func RegisterExercisesRoutes(mux *http.ServeMux, st *storage.Storage) {
 	mux.HandleFunc("/api/v1/exercises/", AuthMiddleware(router.authUseCase, router.mux))
 }
 
-func (router *ExercisesRouter) list(w http.ResponseWriter, _ *http.Request) {
-	result, err := router.useCase.List()
+func (router *ExercisesRouter) list(w http.ResponseWriter, r *http.Request) {
+	req := requests.FilterExercisesRequestBody{CreatedAt: "desc"}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	result, err := router.useCase.List(&req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return

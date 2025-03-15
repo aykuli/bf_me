@@ -17,6 +17,12 @@ type UpdateExerciseRequestBody struct {
 	TitleRu string `json:"title_ru"`
 }
 
+type FilterExercisesRequestBody struct {
+	CreatedAt  string `json:"created_at"`
+	BlockID    bool   `json:"block_id,omitempty"`
+	Suggestion string `json:"suggestion,omitempty"`
+}
+
 type CreateTagRequestBody struct {
 	TitleEn string `json:"title_en"`
 	TitleRu string `json:"title_ru"`
@@ -35,4 +41,8 @@ type BlockRequestBody struct {
 	RelaxTime     uint8  `json:"relax_time"`
 	Draft         bool   `json:"draft"`
 	ExercisesIds  []int  `json:"exercises_ids"`
+}
+
+type FilterBlocksRequestBody struct {
+	Draft bool `json:"draft,omitempty"`
 }

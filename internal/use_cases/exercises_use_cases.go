@@ -18,14 +18,19 @@ func NewExercisesUseCase(st *storage.Storage) *ExercisesUseCase {
 	return &ExercisesUseCase{storage: st}
 }
 
-func (euc *ExercisesUseCase) List() ([]*models.Exercise, error) {
+func (euc *ExercisesUseCase) List(req *requests.FilterExercisesRequestBody) ([]*models.Exercise, error) {
 	var exercises []*models.Exercise
+	//if req.BlockID  {
+	//
+	//}
+	euc.storage.DB.Joins("JOIN exercises_blocks eb ON eb.exercise_id = exercises.id")
 	result := euc.storage.DB.Order("updated_at DESC").Find(&exercises)
 	return exercises, result.Error
 }
 
 func (euc *ExercisesUseCase) Create(req *requests.CreateExerciseRequest) (*models.Exercise, error) {
 	e := req.Exercise
+	// todo if filename is already used, try another one. Maxtries = 5
 	path, err := euc.storage.S3.Upload(euc.makeFilename(e.TitleEn, req.FileHeader.Filename), *req.File, req.FileHeader.Header.Get("Content-Type"))
 	if err != nil {
 		return nil, fmt.Errorf("minio upload file err: %s", err)
