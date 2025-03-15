@@ -18,8 +18,9 @@ type UpdateExerciseRequestBody struct {
 }
 
 type FilterExercisesRequestBody struct {
+	UpdatedAt  string `json:"updated_at"`
 	CreatedAt  string `json:"created_at"`
-	BlockID    bool   `json:"block_id,omitempty"`
+	Ids        bool   `json:"ids,omitempty"`
 	Suggestion string `json:"suggestion,omitempty"`
 }
 
@@ -40,7 +41,6 @@ type BlockRequestBody struct {
 	OnTime        uint8  `json:"on_time"`
 	RelaxTime     uint8  `json:"relax_time"`
 	Draft         bool   `json:"draft"`
-	ExercisesIds  []int  `json:"exercises_ids"`
 }
 
 type FilterBlocksRequestBody struct {

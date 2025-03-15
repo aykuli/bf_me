@@ -65,6 +65,11 @@ func (router *BlocksRouter) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (router *BlocksRouter) list(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "No such endpoint", http.StatusNotFound)
+		return
+	}
+
 	req := requests.FilterBlocksRequestBody{Draft: false}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
@@ -93,7 +98,12 @@ func (router *BlocksRouter) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (router *BlocksRouter) addExercise(w http.ResponseWriter, r *http.Request) {
-	blockIDStr := r.PathValue("id")
+	if r.Method != http.MethodPost {
+		http.Error(w, "No such endpoint", http.StatusNotFound)
+		return
+	}
+
+	blockIDStr := r.PathValue("block_id")
 	exerciseIDStr := r.PathValue("exercise_id")
 	blockID, err := strconv.ParseUint(blockIDStr, 10, 8)
 	if err != nil {

@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 type ExercisesRouter struct {
@@ -31,10 +30,15 @@ func RegisterExercisesRoutes(mux *http.ServeMux, st *storage.Storage) {
 	router := newExercisesRouter(st)
 	mux.HandleFunc("/api/v1/exercises/create", AuthMiddleware(router.authUseCase, router.create))
 	mux.HandleFunc("/api/v1/exercises/list", AuthMiddleware(router.authUseCase, router.list))
-	mux.HandleFunc("/api/v1/exercises/", AuthMiddleware(router.authUseCase, router.mux))
+	mux.HandleFunc("/api/v1/exercises/{id}", AuthMiddleware(router.authUseCase, router.mux))
 }
 
 func (router *ExercisesRouter) list(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "No such endpoint", http.StatusNotFound)
+		return
+	}
+
 	req := requests.FilterExercisesRequestBody{UpdatedAt: "desc"}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
@@ -114,15 +118,7 @@ func (router *ExercisesRouter) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (router *ExercisesRouter) mux(w http.ResponseWriter, r *http.Request) {
-	// Extract the ID from the URL path
-	path := strings.TrimPrefix(r.URL.Path, "/api/v1/exercises/")
-	id := strings.TrimSuffix(path, "/")
-
-	if id == "" {
-		http.Error(w, "invalid id provided", http.StatusBadRequest)
-		return
-	}
-	idInt, err := strconv.Atoi(id)
+	idInt, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, fmt.Errorf("invalid id provided: %s", err).Error(), http.StatusUnprocessableEntity)
 		return

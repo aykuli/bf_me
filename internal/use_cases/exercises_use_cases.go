@@ -43,7 +43,7 @@ func (euc *ExercisesUseCase) Create(req *requests.CreateExerciseRequest) (*model
 
 func (euc *ExercisesUseCase) Find(id int) (*models.Exercise, error) {
 	var e models.Exercise
-	result := euc.storage.DB.Preload("Exercises").First(&e, id)
+	result := euc.storage.DB.Preload("ExerciseBlocks").First(&e, id)
 	return &e, result.Error
 }
 

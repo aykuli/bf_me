@@ -11,5 +11,4 @@ type Exercise struct {
 	TitleRu  string         `gorm:"not null"`
 	Filename string         `gorm:"unique;not null"`
 	Tips     pq.StringArray `gorm:"type:text[]"`
-	Tags     []Tag          `gorm:"many2many:exercises_tags;"`
 }

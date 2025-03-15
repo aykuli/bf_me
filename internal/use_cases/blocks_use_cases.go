@@ -4,6 +4,7 @@ import (
 	"bf_me/internal/models"
 	"bf_me/internal/requests"
 	"bf_me/internal/storage"
+	"errors"
 )
 
 type BlocksUseCase struct {
@@ -16,56 +17,54 @@ func NewBlocksUseCase(st *storage.Storage) *BlocksUseCase {
 
 func (buc *BlocksUseCase) List(req *requests.FilterBlocksRequestBody) ([]*models.Block, error) {
 	var blocks []*models.Block
-	result := buc.storage.DB.Preload("Exercises").Where("draft = ?", req.Draft).Order("updated_at DESC").Find(&blocks)
+	result := buc.storage.DB.Where("draft = ?", req.Draft).Order("updated_at DESC").Find(&blocks)
 	return blocks, result.Error
 }
 
 // todo database transactions
 func (buc *BlocksUseCase) AddBlockExercise(blockID, exerciseID uint) (*models.Block, error) {
+	var block models.Block
+	result := buc.storage.DB.First(&block, blockID)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if !block.Draft {
+		return nil, errors.New("block is not draft")
+	}
+
 	var ebs []models.ExerciseBlock
-	result := buc.storage.DB.Where("block_id = ?", blockID).Select(&ebs)
+	result = buc.storage.DB.Where("block_id = ?", blockID).Find(&ebs)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	maxOrder := buc.findMaxOrder(ebs)
+	nextOrder := buc.findNextOrder(ebs)
 	eb := models.ExerciseBlock{
-		ExerciseID: exerciseID,
-		BlockID:    blockID,
-		Order:      maxOrder + 1,
+		ExerciseID:    exerciseID,
+		BlockID:       blockID,
+		ExerciseOrder: nextOrder,
 	}
 	result = buc.storage.DB.Create(&eb)
-
-	var block models.Block
-	result = buc.storage.DB.Preload("Exercises").First(&block, blockID)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
+	result = buc.storage.DB.First(&block, blockID)
 	return &block, result.Error
 }
 
-func (buc *BlocksUseCase) findMaxOrder(ebs []models.ExerciseBlock) uint {
+func (buc *BlocksUseCase) findNextOrder(ebs []models.ExerciseBlock) uint {
 	var order uint = 0
 	for _, e := range ebs {
-		if e.Order > order {
-			order = e.Order
+		if e.ExerciseOrder >= order {
+			order = e.ExerciseOrder + 1
 		}
 	}
+
 	return order
 }
 
 func (buc *BlocksUseCase) updateBlock(block models.Block, req requests.BlockRequestBody) (*models.Block, error) {
-	//if len(req.ExercisesIds) != 0 {
-	//	var existingExercises []models.Exercise
-	//	result := buc.storage.DB.Where("id IN ?", req.ExercisesIds).Find(&existingExercises)
-	//	if result.Error != nil {
-	//		return nil, result.Error
-	//	}
-	//
-	//	block.Exercises = existingExercises
-	//}
-
 	if req.TitleRu != "" {
 		block.TitleRu = req.TitleRu
 	}
@@ -99,13 +98,13 @@ func (buc *BlocksUseCase) Create(req *requests.BlockRequestBody) (*models.Block,
 
 func (buc *BlocksUseCase) Find(id int) (*models.Block, error) {
 	var block models.Block
-	result := buc.storage.DB.Preload("Exercises").First(&block, id)
+	result := buc.storage.DB.Preload("ExerciseBlocks").First(&block, id)
 	return &block, result.Error
 }
 
 func (buc *BlocksUseCase) Update(id int, req *requests.BlockRequestBody) (*models.Block, error) {
 	var block models.Block
-	result := buc.storage.DB.Preload("Exercises").First(&block, id)
+	result := buc.storage.DB.First(&block, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
