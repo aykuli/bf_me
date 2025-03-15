@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 type BlocksRouter struct {
@@ -30,7 +29,8 @@ func RegisterBlocksRoutes(mux *http.ServeMux, st *storage.Storage) {
 	router := newBlocksRouter(st)
 	mux.HandleFunc("/api/v1/blocks/create", AuthMiddleware(router.authUseCase, router.create))
 	mux.HandleFunc("/api/v1/blocks/list", AuthMiddleware(router.authUseCase, router.list))
-	mux.HandleFunc("/api/v1/blocks/", AuthMiddleware(router.authUseCase, router.mux))
+	mux.HandleFunc("/api/v1/blocks/{block_id}/addExercise/{exercise_id}", AuthMiddleware(router.authUseCase, router.addExercise))
+	mux.HandleFunc("/api/v1/blocks/{id}", AuthMiddleware(router.authUseCase, router.mux))
 }
 
 func (router *BlocksRouter) create(w http.ResponseWriter, r *http.Request) {
@@ -92,16 +92,43 @@ func (router *BlocksRouter) list(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (router *BlocksRouter) mux(w http.ResponseWriter, r *http.Request) {
-	// Extract the ID from the URL path
-	path := strings.TrimPrefix(r.URL.Path, "/api/v1/blocks/")
-	id := strings.TrimSuffix(path, "/")
-
-	if id == "" {
-		http.Error(w, "invalid id provided", http.StatusBadRequest)
+func (router *BlocksRouter) addExercise(w http.ResponseWriter, r *http.Request) {
+	blockIDStr := r.PathValue("id")
+	exerciseIDStr := r.PathValue("exercise_id")
+	blockID, err := strconv.ParseUint(blockIDStr, 10, 8)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
-	idInt, err := strconv.Atoi(id)
+	exerciseID, err := strconv.ParseUint(exerciseIDStr, 10, 8)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	result, err := router.useCase.AddBlockExercise(uint(blockID), uint(exerciseID))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	byteData, err := json.Marshal(router.presenter.Block(result))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.WriteHeader(http.StatusOK)
+
+	if _, err = w.Write(byteData); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (router *BlocksRouter) mux(w http.ResponseWriter, r *http.Request) {
+	idInt, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, fmt.Errorf("invalid id provided: %s", err).Error(), http.StatusUnprocessableEntity)
 		return

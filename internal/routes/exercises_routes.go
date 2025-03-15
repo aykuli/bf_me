@@ -35,7 +35,7 @@ func RegisterExercisesRoutes(mux *http.ServeMux, st *storage.Storage) {
 }
 
 func (router *ExercisesRouter) list(w http.ResponseWriter, r *http.Request) {
-	req := requests.FilterExercisesRequestBody{CreatedAt: "desc"}
+	req := requests.FilterExercisesRequestBody{UpdatedAt: "desc"}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return

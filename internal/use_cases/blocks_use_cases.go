@@ -14,22 +14,57 @@ func NewBlocksUseCase(st *storage.Storage) *BlocksUseCase {
 	return &BlocksUseCase{storage: st}
 }
 
-func (euc *BlocksUseCase) List(req *requests.FilterBlocksRequestBody) ([]*models.Block, error) {
+func (buc *BlocksUseCase) List(req *requests.FilterBlocksRequestBody) ([]*models.Block, error) {
 	var blocks []*models.Block
-	result := euc.storage.DB.Preload("Exercises").Where("draft = ?", req.Draft).Order("updated_at DESC").Find(&blocks)
+	result := buc.storage.DB.Preload("Exercises").Where("draft = ?", req.Draft).Order("updated_at DESC").Find(&blocks)
 	return blocks, result.Error
 }
 
-func (euc *BlocksUseCase) updateBlock(block models.Block, req requests.BlockRequestBody) (*models.Block, error) {
-	if len(req.ExercisesIds) != 0 {
-		var existingExercises []models.Exercise
-		result := euc.storage.DB.Where("id IN ?", req.ExercisesIds).Find(&existingExercises)
-		if result.Error != nil {
-			return nil, result.Error
-		}
-
-		block.Exercises = existingExercises
+// todo database transactions
+func (buc *BlocksUseCase) AddBlockExercise(blockID, exerciseID uint) (*models.Block, error) {
+	var ebs []models.ExerciseBlock
+	result := buc.storage.DB.Where("block_id = ?", blockID).Select(&ebs)
+	if result.Error != nil {
+		return nil, result.Error
 	}
+
+	maxOrder := buc.findMaxOrder(ebs)
+	eb := models.ExerciseBlock{
+		ExerciseID: exerciseID,
+		BlockID:    blockID,
+		Order:      maxOrder + 1,
+	}
+	result = buc.storage.DB.Create(&eb)
+
+	var block models.Block
+	result = buc.storage.DB.Preload("Exercises").First(&block, blockID)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &block, result.Error
+}
+
+func (buc *BlocksUseCase) findMaxOrder(ebs []models.ExerciseBlock) uint {
+	var order uint = 0
+	for _, e := range ebs {
+		if e.Order > order {
+			order = e.Order
+		}
+	}
+	return order
+}
+
+func (buc *BlocksUseCase) updateBlock(block models.Block, req requests.BlockRequestBody) (*models.Block, error) {
+	//if len(req.ExercisesIds) != 0 {
+	//	var existingExercises []models.Exercise
+	//	result := buc.storage.DB.Where("id IN ?", req.ExercisesIds).Find(&existingExercises)
+	//	if result.Error != nil {
+	//		return nil, result.Error
+	//	}
+	//
+	//	block.Exercises = existingExercises
+	//}
 
 	if req.TitleRu != "" {
 		block.TitleRu = req.TitleRu

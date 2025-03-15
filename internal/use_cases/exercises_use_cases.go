@@ -24,7 +24,8 @@ func (euc *ExercisesUseCase) List(req *requests.FilterExercisesRequestBody) ([]*
 	//
 	//}
 	euc.storage.DB.Joins("JOIN exercises_blocks eb ON eb.exercise_id = exercises.id")
-	result := euc.storage.DB.Order("updated_at DESC").Find(&exercises)
+
+	result := euc.storage.DB.Order(fmt.Sprintf("updated_at %s", req.UpdatedAt)).Find(&exercises)
 	return exercises, result.Error
 }
 

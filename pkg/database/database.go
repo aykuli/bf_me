@@ -24,28 +24,19 @@ func New(uri string) (*gorm.DB, error) {
 	if result.Error != nil {
 		return nil, fmt.Errorf("failed to enable extension for uuid: %s", err)
 	}
-	err = db.AutoMigrate(&models.Exercise{})
+
+	err = db.AutoMigrate(&models.User{}, &models.Session{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to migrate exercises table %s", err)
-	}
-	err = db.AutoMigrate(&models.Block{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to migrate blocks table %s", err)
+		return nil, fmt.Errorf("failed to migrate tables %s", err)
 	}
 
-	err = db.AutoMigrate(&models.User{})
+	err = db.SetupJoinTable(&models.Block{}, "Exercises", &models.ExerciseBlock{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to migrate user table %s", err)
+		return nil, fmt.Errorf("failed to set up join table between exercises and blocks tables %s", err)
 	}
-
-	err = db.AutoMigrate(&models.Session{})
+	err = db.AutoMigrate(&models.Exercise{}, &models.Block{}, &models.ExerciseBlock{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to migrate session table %s", err)
-	}
-
-	err = db.AutoMigrate(&models.Tag{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to migrate tag table %s", err)
+		return nil, fmt.Errorf("failed to migrate tables %s", err)
 	}
 
 	return db, err
