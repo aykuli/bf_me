@@ -7,7 +7,9 @@ import (
 	"bf_me/internal/storage"
 	"bf_me/internal/use_cases"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 )
@@ -91,10 +93,10 @@ func (router *ExercisesRouter) create(w http.ResponseWriter, r *http.Request) {
 
 	req := requests.CreateExerciseRequest{
 		Exercise: &models.Exercise{
-			TitleEn: r.FormValue("title_en"),
-			TitleRu: r.FormValue("title_ru"),
+			TitleEn: r.FormValue("titleEn"),
+			TitleRu: r.FormValue("titleRu"),
 		},
-		TagIds:     r.FormValue("tag_ids"),
+		TagIds:     r.FormValue("tagIds"),
 		File:       &file,
 		FileHeader: header,
 	}
@@ -139,8 +141,12 @@ func (router *ExercisesRouter) mux(w http.ResponseWriter, r *http.Request) {
 
 func (router *ExercisesRouter) get(id int, w http.ResponseWriter, _ *http.Request) {
 	result, err := router.useCase.Find(id)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
