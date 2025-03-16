@@ -5,7 +5,12 @@ import (
 	"bf_me/internal/requests"
 	"bf_me/internal/services"
 	"bf_me/internal/storage"
+	"errors"
 	"fmt"
+)
+
+var (
+	ErrNoMoreUser = errors.New("no more users can register")
 )
 
 type SessionsUseCase struct {
@@ -16,7 +21,18 @@ func NewSessionsUseCase(st *storage.Storage) *SessionsUseCase {
 	return &SessionsUseCase{storage: st}
 }
 
-func (euc *SessionsUseCase) CreateUser(req requests.UserRequestBody) (*models.Session, error) {
+func (suc *SessionsUseCase) CreateUser(req requests.UserRequestBody) (*models.Session, error) {
+	// limiting registered users
+	var count int64
+	result := suc.storage.DB.Table("users").Count(&count)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	if count > 1 {
+		return nil, ErrNoMoreUser
+	}
+
 	var u models.User
 	var err error
 	u.Login = req.Login
@@ -25,19 +41,19 @@ func (euc *SessionsUseCase) CreateUser(req requests.UserRequestBody) (*models.Se
 		return nil, fmt.Errorf("password error: %s", err)
 	}
 
-	result := euc.storage.DB.Create(&u)
+	result = suc.storage.DB.Create(&u)
 	if result.Error != nil {
 		return nil, fmt.Errorf("create user error: %s", result.Error)
 	}
 	var s models.Session
 	s.User = u
-	result = euc.storage.DB.Create(&s)
+	result = suc.storage.DB.Create(&s)
 	return &s, result.Error
 }
 
-func (euc *SessionsUseCase) Create(req *requests.UserRequestBody) (*models.Session, error) {
+func (suc *SessionsUseCase) Create(req *requests.UserRequestBody) (*models.Session, error) {
 	var u models.User
-	result := euc.storage.DB.Where("login = ?", req.Login).First(&u)
+	result := suc.storage.DB.Where("login = ?", req.Login).First(&u)
 	if result.Error != nil {
 		return nil, fmt.Errorf("no such user error: %s", result.Error)
 	}
@@ -47,29 +63,29 @@ func (euc *SessionsUseCase) Create(req *requests.UserRequestBody) (*models.Sessi
 		return nil, fmt.Errorf("wrong password")
 	}
 	var sessions []models.Session
-	euc.storage.DB.Where("user_id = ?", u.ID).Delete(&sessions)
+	suc.storage.DB.Where("user_id = ?", u.ID).Delete(&sessions)
 
 	var s models.Session
 	s.User = u
-	result = euc.storage.DB.Create(&s)
+	result = suc.storage.DB.Create(&s)
 	return &s, result.Error
 }
 
-func (euc *SessionsUseCase) Delete(sessionId string) error {
+func (suc *SessionsUseCase) Delete(sessionId string) error {
 	var session models.Session
-	result := euc.storage.DB.Where("id = ?", sessionId).First(&session)
+	result := suc.storage.DB.Where("id = ?", sessionId).First(&session)
 	if result.Error != nil {
 		return result.Error
 	}
 
 	var sessions []models.Session
-	result = euc.storage.DB.Where("user_id = ?", session.UserID).Delete(&sessions)
+	result = suc.storage.DB.Where("user_id = ?", session.UserID).Delete(&sessions)
 	return result.Error
 }
 
-func (euc *SessionsUseCase) Find(sessionId string) (*models.Session, error) {
+func (suc *SessionsUseCase) Find(sessionId string) (*models.Session, error) {
 	var session *models.Session
-	result := euc.storage.DB.Where("id = ?", sessionId).First(&session)
+	result := suc.storage.DB.Where("id = ?", sessionId).First(&session)
 	if result.Error != nil {
 		return nil, result.Error
 	}
