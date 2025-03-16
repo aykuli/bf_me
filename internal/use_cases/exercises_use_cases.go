@@ -50,8 +50,15 @@ func (euc *ExercisesUseCase) Find(id int) (*models.Exercise, error) {
 func (euc *ExercisesUseCase) Update(id int, req *requests.UpdateExerciseRequestBody) (*models.Exercise, error) {
 	var e *models.Exercise
 	result := euc.storage.DB.First(&e, id)
-	e.TitleRu = req.TitleRu
-	e.TitleEn = req.TitleEn
+	if req.TitleRu != "" {
+		e.TitleRu = req.TitleRu
+	}
+	if req.TitleEn != "" {
+		e.TitleEn = req.TitleEn
+	}
+	if len(req.Tips) != 0 {
+		e.Tips = req.Tips
+	}
 
 	result = euc.storage.DB.Save(e)
 	return e, result.Error

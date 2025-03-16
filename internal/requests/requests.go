@@ -5,16 +5,20 @@ import (
 	"mime/multipart"
 )
 
+// @note Tips should be sent in form `str1,str2,str3`
 type CreateExerciseRequest struct {
 	Exercise   *models.Exercise
 	TagIds     string
 	File       *multipart.File
 	FileHeader *multipart.FileHeader
+	Tips       []string
 }
 
+// @note Tips should be sent in form `str1,str2,str3`
 type UpdateExerciseRequestBody struct {
-	TitleEn string `json:"titleEn"`
-	TitleRu string `json:"titleRu"`
+	TitleEn string   `json:"titleEn"`
+	TitleRu string   `json:"titleRu"`
+	Tips    []string `json:"tips"`
 }
 
 type FilterExercisesRequestBody struct {
