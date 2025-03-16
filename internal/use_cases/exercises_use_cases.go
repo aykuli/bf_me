@@ -18,14 +18,20 @@ func NewExercisesUseCase(st *storage.Storage) *ExercisesUseCase {
 	return &ExercisesUseCase{storage: st}
 }
 
-func (euc *ExercisesUseCase) List() ([]*models.Exercise, error) {
+func (euc *ExercisesUseCase) List(req *requests.FilterExercisesRequestBody) ([]*models.Exercise, error) {
 	var exercises []*models.Exercise
-	result := euc.storage.DB.Order("updated_at DESC").Find(&exercises)
+	//if req.BlockID  {
+	//
+	//}
+	euc.storage.DB.Joins("JOIN exercises_blocks eb ON eb.exercise_id = exercises.id")
+
+	result := euc.storage.DB.Order(fmt.Sprintf("updated_at %s", req.UpdatedAt)).Find(&exercises)
 	return exercises, result.Error
 }
 
 func (euc *ExercisesUseCase) Create(req *requests.CreateExerciseRequest) (*models.Exercise, error) {
 	e := req.Exercise
+	// todo if filename is already used, try another one. Maxtries = 5
 	path, err := euc.storage.S3.Upload(euc.makeFilename(e.TitleEn, req.FileHeader.Filename), *req.File, req.FileHeader.Header.Get("Content-Type"))
 	if err != nil {
 		return nil, fmt.Errorf("minio upload file err: %s", err)
@@ -37,7 +43,7 @@ func (euc *ExercisesUseCase) Create(req *requests.CreateExerciseRequest) (*model
 
 func (euc *ExercisesUseCase) Find(id int) (*models.Exercise, error) {
 	var e models.Exercise
-	result := euc.storage.DB.Preload("Exercises").First(&e, id)
+	result := euc.storage.DB.First(&e, id)
 	return &e, result.Error
 }
 

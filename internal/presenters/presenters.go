@@ -3,6 +3,7 @@ package presenters
 import (
 	"bf_me/internal/models"
 	"github.com/jackc/pgx/v5/pgtype"
+	"slices"
 	"time"
 )
 
@@ -12,6 +13,7 @@ type Exercise struct {
 	TitleEn   string    `json:"titleEn"`
 	TitleRu   string    `json:"titleRu"`
 	Filename  string    `json:"filename"`
+	Tips      []string  `json:"tips"`
 	Tags      []string  `json:"tagIds,omitempty;"`
 }
 
@@ -30,6 +32,7 @@ func (p *Presenter) Exercise(e *models.Exercise) *Exercise {
 		TitleEn:   e.TitleEn,
 		TitleRu:   e.TitleRu,
 		Filename:  e.Filename,
+		Tips:      e.Tips,
 	}
 }
 
@@ -42,6 +45,7 @@ func (p *Presenter) Exercises(es []*models.Exercise) []*Exercise {
 			TitleEn:   e.TitleEn,
 			TitleRu:   e.TitleRu,
 			Filename:  e.Filename,
+			Tips:      e.Tips,
 		}
 	}
 	return exercises
@@ -67,11 +71,10 @@ type Block struct {
 	ExercisesIds  []uint    `json:"exercisesIds,omitempty;"`
 }
 
-func (p *Presenter) buildBlock(block *models.Block) *Block {
-	exercisesIds := make([]uint, len(block.Exercises))
-	for i, e := range block.Exercises {
-		exercisesIds[i] = e.ID
-	}
+func (p *Presenter) Block(block *models.Block) *Block {
+	slices.SortFunc(block.ExerciseBlocks, func(a, b models.ExerciseBlock) int {
+		return int(a.ExerciseOrder - b.ExerciseOrder)
+	})
 	return &Block{
 		ID:            block.ID,
 		CreatedAt:     block.CreatedAt,
@@ -81,18 +84,31 @@ func (p *Presenter) buildBlock(block *models.Block) *Block {
 		OnTime:        block.OnTime,
 		RelaxTime:     block.RelaxTime,
 		Draft:         block.Draft,
-		ExercisesIds:  exercisesIds,
+		ExercisesIds:  p.buildBlockExerciseIds(block.ExerciseBlocks),
 	}
 }
 
-func (p *Presenter) Block(block *models.Block) *Block {
-	return p.buildBlock(block)
+func (p *Presenter) buildBlockExerciseIds(ebs []models.ExerciseBlock) []uint {
+	var arr = make([]uint, len(ebs))
+	for i, eb := range ebs {
+		arr[i] = eb.ExerciseID
+	}
+	return arr
 }
 
 func (p *Presenter) Blocks(bs []*models.Block) []*Block {
 	exercises := make([]*Block, len(bs))
-	for i, b := range bs {
-		exercises[i] = p.buildBlock(b)
+	for i, block := range bs {
+		exercises[i] = &Block{
+			ID:            block.ID,
+			CreatedAt:     block.CreatedAt,
+			TitleEn:       block.TitleEn,
+			TitleRu:       block.TitleRu,
+			TotalDuration: block.TotalDuration,
+			OnTime:        block.OnTime,
+			RelaxTime:     block.RelaxTime,
+			Draft:         block.Draft,
+		}
 	}
 	return exercises
 }

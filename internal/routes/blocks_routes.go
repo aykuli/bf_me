@@ -1,15 +1,18 @@
 package routes
 
 import (
+	"bf_me/internal/models"
 	"bf_me/internal/presenters"
 	"bf_me/internal/requests"
 	"bf_me/internal/storage"
 	"bf_me/internal/use_cases"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"gorm.io/gorm"
 	"net/http"
+	"slices"
 	"strconv"
-	"strings"
 )
 
 type BlocksRouter struct {
@@ -30,7 +33,10 @@ func RegisterBlocksRoutes(mux *http.ServeMux, st *storage.Storage) {
 	router := newBlocksRouter(st)
 	mux.HandleFunc("/api/v1/blocks/create", AuthMiddleware(router.authUseCase, router.create))
 	mux.HandleFunc("/api/v1/blocks/list", AuthMiddleware(router.authUseCase, router.list))
-	mux.HandleFunc("/api/v1/blocks/", AuthMiddleware(router.authUseCase, router.mux))
+
+	// action is enum of ["add", "remove"]
+	mux.HandleFunc("/api/v1/blocks/{block_id}/{action}/exercise/{exercise_id}", AuthMiddleware(router.authUseCase, router.handleExercise))
+	mux.HandleFunc("/api/v1/blocks/{id}", AuthMiddleware(router.authUseCase, router.mux))
 }
 
 func (router *BlocksRouter) create(w http.ResponseWriter, r *http.Request) {
@@ -64,8 +70,19 @@ func (router *BlocksRouter) create(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (router *BlocksRouter) list(w http.ResponseWriter, _ *http.Request) {
-	result, err := router.useCase.List()
+func (router *BlocksRouter) list(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "No such endpoint", http.StatusNotFound)
+		return
+	}
+
+	req := requests.FilterBlocksRequestBody{Draft: false}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	result, err := router.useCase.List(&req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
@@ -86,16 +103,64 @@ func (router *BlocksRouter) list(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func (router *BlocksRouter) mux(w http.ResponseWriter, r *http.Request) {
-	// Extract the ID from the URL path
-	path := strings.TrimPrefix(r.URL.Path, "/api/v1/blocks/")
-	id := strings.TrimSuffix(path, "/")
-
-	if id == "" {
-		http.Error(w, "invalid id provided", http.StatusBadRequest)
+func (router *BlocksRouter) handleExercise(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "No such endpoint", http.StatusNotFound)
 		return
 	}
-	idInt, err := strconv.Atoi(id)
+
+	action := r.PathValue("action")
+	if slices.Contains([]string{"add", "remove"}, action) == false {
+		http.Error(w, "No such endpoint", http.StatusNotFound)
+		return
+	}
+
+	blockIDStr := r.PathValue("block_id")
+	exerciseIDStr := r.PathValue("exercise_id")
+	blockID, err := strconv.ParseUint(blockIDStr, 10, 8)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+	exerciseID, err := strconv.ParseUint(exerciseIDStr, 10, 8)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	var block *models.Block
+	if action == "add" {
+		block, err = router.useCase.AddBlockExercise(uint(blockID), uint(exerciseID))
+	} else {
+		block, err = router.useCase.RemoveBlockExercise(uint(blockID), uint(exerciseID))
+	}
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	byteData, err := json.Marshal(router.presenter.Block(block))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.WriteHeader(http.StatusOK)
+
+	if _, err = w.Write(byteData); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (router *BlocksRouter) mux(w http.ResponseWriter, r *http.Request) {
+	idInt, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, fmt.Errorf("invalid id provided: %s", err).Error(), http.StatusUnprocessableEntity)
 		return
@@ -117,6 +182,10 @@ func (router *BlocksRouter) mux(w http.ResponseWriter, r *http.Request) {
 
 func (router *BlocksRouter) get(id int, w http.ResponseWriter, _ *http.Request) {
 	result, err := router.useCase.Find(id)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
