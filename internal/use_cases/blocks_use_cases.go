@@ -5,6 +5,14 @@ import (
 	"bf_me/internal/requests"
 	"bf_me/internal/storage"
 	"errors"
+	"gorm.io/gorm"
+	"math"
+)
+
+var (
+	ErrBlockNotReady        = errors.New("block is not ready to be published\nadd more exercises")
+	ErrBlockFullOfExercises = errors.New("block full of exercises\n check it and be ready to publish it")
+	ErrExerciseDeleted      = errors.New("exercise was deleted\nchoose another one")
 )
 
 type BlocksUseCase struct {
@@ -24,12 +32,26 @@ func (buc *BlocksUseCase) List(req *requests.FilterBlocksRequestBody) ([]*models
 // todo database transactions
 func (buc *BlocksUseCase) AddBlockExercise(blockID, exerciseID uint) (*models.Block, error) {
 	var block models.Block
-	result := buc.storage.DB.First(&block, blockID)
+	result := buc.storage.DB.Preload("ExerciseBlocks").First(&block, blockID)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 	if !block.Draft {
-		return nil, errors.New("block is not draft")
+		return nil, errors.New("block is not draft\ncannot add exercise")
+	}
+	//check if exercises count is not reached its highest level
+	full := buc.checkBlockFullOfExercises(&block)
+	if full {
+		return nil, ErrBlockFullOfExercises
+	}
+
+	var exercise models.Exercise
+	result = buc.storage.DB.First(&exercise, exerciseID)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, ErrExerciseDeleted
+	}
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
 	var ebs []models.ExerciseBlock
@@ -38,7 +60,7 @@ func (buc *BlocksUseCase) AddBlockExercise(blockID, exerciseID uint) (*models.Bl
 		return nil, result.Error
 	}
 
-	nextOrder := buc.findNextOrder(ebs)
+	nextOrder := buc.findNextOrder(block.ExerciseBlocks)
 	eb := models.ExerciseBlock{
 		ExerciseID:    exerciseID,
 		BlockID:       blockID,
@@ -49,7 +71,7 @@ func (buc *BlocksUseCase) AddBlockExercise(blockID, exerciseID uint) (*models.Bl
 		return nil, result.Error
 	}
 
-	result = buc.storage.DB.First(&block, blockID)
+	result = buc.storage.DB.Preload("ExerciseBlocks").First(&block, blockID)
 	return &block, result.Error
 }
 
@@ -91,9 +113,42 @@ func (buc *BlocksUseCase) Create(req *requests.BlockRequestBody) (*models.Block,
 	if err != nil {
 		return nil, err
 	}
+	buc.fitTiming(updatedBlock)
 
 	result := buc.storage.DB.Create(&updatedBlock)
 	return updatedBlock, result.Error
+}
+
+func (buc *BlocksUseCase) fitTiming(block *models.Block) {
+	//TotalDuration
+	if block.TotalDuration > 60 {
+		block.TotalDuration = 60
+	}
+	if block.TotalDuration < 10 {
+		block.TotalDuration = 10
+	}
+
+	//relaxTime
+	if block.RelaxTime > 30 {
+		block.RelaxTime = 30
+	}
+
+	//onTime
+	if block.OnTime > 60 {
+		block.OnTime = 60
+	}
+	if block.OnTime < 20 {
+		block.OnTime = 20
+	}
+
+	exercisesCount := (int(block.TotalDuration) * 60) / int(block.OnTime+block.RelaxTime)
+	//if all counting fits with each other
+	if exercisesCount*int(block.OnTime+block.RelaxTime) == int(block.TotalDuration)*60 {
+		return
+	}
+
+	block.OnTime = uint8(math.Ceil(float64(block.OnTime)/10) * 10)
+	block.RelaxTime = 60 - block.OnTime
 }
 
 func (buc *BlocksUseCase) Find(id int) (*models.Block, error) {
@@ -104,10 +159,19 @@ func (buc *BlocksUseCase) Find(id int) (*models.Block, error) {
 
 func (buc *BlocksUseCase) Update(id int, req *requests.BlockRequestBody) (*models.Block, error) {
 	var block models.Block
-	result := buc.storage.DB.First(&block, id)
+	result := buc.storage.DB.Preload("ExerciseBlocks").First(&block, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
+
+	if req.Draft == false {
+		full := buc.checkBlockFullOfExercises(&block)
+		if full == false {
+			return nil, ErrBlockNotReady
+		}
+	}
+
+	buc.fitTiming(&block)
 
 	updatedBlock, err := buc.updateBlock(block, *req)
 	if err != nil {
@@ -124,4 +188,8 @@ func (buc *BlocksUseCase) Delete(id int) error {
 
 	result = buc.storage.DB.Delete(&models.Block{}, id)
 	return result.Error
+}
+
+func (buc *BlocksUseCase) checkBlockFullOfExercises(block *models.Block) bool {
+	return int(block.TotalDuration)*60 == len(block.ExerciseBlocks)*int(block.OnTime+block.RelaxTime)
 }

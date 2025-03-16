@@ -6,7 +6,9 @@ import (
 	"bf_me/internal/storage"
 	"bf_me/internal/use_cases"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 )
@@ -117,6 +119,10 @@ func (router *BlocksRouter) addExercise(w http.ResponseWriter, r *http.Request) 
 	}
 
 	result, err := router.useCase.AddBlockExercise(uint(blockID), uint(exerciseID))
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
@@ -160,6 +166,10 @@ func (router *BlocksRouter) mux(w http.ResponseWriter, r *http.Request) {
 
 func (router *BlocksRouter) get(id int, w http.ResponseWriter, _ *http.Request) {
 	result, err := router.useCase.Find(id)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
