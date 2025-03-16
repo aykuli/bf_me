@@ -10,5 +10,5 @@ type Exercise struct {
 	TitleEn  string         `gorm:"not null"`
 	TitleRu  string         `gorm:"not null"`
 	Filename string         `gorm:"unique;not null"`
-	Tips     pq.StringArray `gorm:"type:text[]"`
+	Tips     pq.StringArray `gorm:"type:text[];default:'{}'"`
 }

@@ -27,6 +27,11 @@ func (euc *ExercisesUseCase) List(req *requests.FilterExercisesRequestBody) ([]*
 		return exercises, result.Error
 	}
 
+	if req.Suggestion != "" {
+		result := euc.storage.DB.Where("title_en ILIKE ? OR title_ru ILIKE ?", "%"+req.Suggestion+"%", "%"+req.Suggestion+"%").Find(&exercises)
+		return exercises, result.Error
+	}
+
 	result := euc.storage.DB.Order(fmt.Sprintf("updated_at %s", req.UpdatedAt)).Find(&exercises)
 	return exercises, result.Error
 }

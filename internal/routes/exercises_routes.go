@@ -9,11 +9,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/lib/pq"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"gorm.io/gorm"
 )
 
 type ExercisesRouter struct {
@@ -92,12 +92,18 @@ func (router *ExercisesRouter) create(w http.ResponseWriter, r *http.Request) {
 			fmt.Printf("defer file close err: %s", err)
 		}
 	}()
+
+	exercise := &models.Exercise{
+		TitleEn: r.FormValue("titleEn"),
+		TitleRu: r.FormValue("titleRu"),
+	}
+	tips := r.FormValue("tips")
+	if tips != "" {
+		exercise.Tips = strings.Split(r.FormValue("tips"), ",")
+
+	}
 	req := requests.CreateExerciseRequest{
-		Exercise: &models.Exercise{
-			TitleEn: r.FormValue("titleEn"),
-			TitleRu: r.FormValue("titleRu"),
-			Tips:    pq.StringArray(strings.Split(r.FormValue("tips"), ",")),
-		},
+		Exercise:   exercise,
 		TagIds:     r.FormValue("tagIds"),
 		File:       &file,
 		FileHeader: header,
