@@ -29,7 +29,6 @@ func (buc *BlocksUseCase) List(req *requests.FilterBlocksRequestBody) ([]*models
 	return blocks, result.Error
 }
 
-// todo database transactions
 func (buc *BlocksUseCase) AddBlockExercise(blockID, exerciseID uint) (*models.Block, error) {
 	var block models.Block
 	result := buc.storage.DB.Preload("ExerciseBlocks").First(&block, blockID)
@@ -71,6 +70,23 @@ func (buc *BlocksUseCase) AddBlockExercise(blockID, exerciseID uint) (*models.Bl
 		return nil, result.Error
 	}
 
+	result = buc.storage.DB.Preload("ExerciseBlocks").First(&block, blockID)
+	return &block, result.Error
+}
+
+func (buc *BlocksUseCase) RemoveBlockExercise(blockID, exerciseID uint) (*models.Block, error) {
+	var exerciseBlockRelation models.ExerciseBlock
+	result := buc.storage.DB.First(&exerciseBlockRelation, "block_id = ? AND exercise_id = ?", blockID, exerciseID)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	result = buc.storage.DB.Unscoped().Delete(&exerciseBlockRelation)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	var block models.Block
 	result = buc.storage.DB.Preload("ExerciseBlocks").First(&block, blockID)
 	return &block, result.Error
 }

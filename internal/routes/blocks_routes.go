@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"bf_me/internal/models"
 	"bf_me/internal/presenters"
 	"bf_me/internal/requests"
 	"bf_me/internal/storage"
@@ -10,6 +11,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"net/http"
+	"slices"
 	"strconv"
 )
 
@@ -31,7 +33,9 @@ func RegisterBlocksRoutes(mux *http.ServeMux, st *storage.Storage) {
 	router := newBlocksRouter(st)
 	mux.HandleFunc("/api/v1/blocks/create", AuthMiddleware(router.authUseCase, router.create))
 	mux.HandleFunc("/api/v1/blocks/list", AuthMiddleware(router.authUseCase, router.list))
-	mux.HandleFunc("/api/v1/blocks/{block_id}/addExercise/{exercise_id}", AuthMiddleware(router.authUseCase, router.addExercise))
+
+	// action is enum of ["add", "remove"]
+	mux.HandleFunc("/api/v1/blocks/{block_id}/{action}/exercise/{exercise_id}", AuthMiddleware(router.authUseCase, router.handleExercise))
 	mux.HandleFunc("/api/v1/blocks/{id}", AuthMiddleware(router.authUseCase, router.mux))
 }
 
@@ -99,8 +103,14 @@ func (router *BlocksRouter) list(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (router *BlocksRouter) addExercise(w http.ResponseWriter, r *http.Request) {
+func (router *BlocksRouter) handleExercise(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
+		http.Error(w, "No such endpoint", http.StatusNotFound)
+		return
+	}
+
+	action := r.PathValue("action")
+	if slices.Contains([]string{"add", "remove"}, action) == false {
 		http.Error(w, "No such endpoint", http.StatusNotFound)
 		return
 	}
@@ -118,7 +128,13 @@ func (router *BlocksRouter) addExercise(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	result, err := router.useCase.AddBlockExercise(uint(blockID), uint(exerciseID))
+	var block *models.Block
+	if action == "add" {
+		block, err = router.useCase.AddBlockExercise(uint(blockID), uint(exerciseID))
+	} else {
+		block, err = router.useCase.RemoveBlockExercise(uint(blockID), uint(exerciseID))
+	}
+
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -128,7 +144,7 @@ func (router *BlocksRouter) addExercise(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	byteData, err := json.Marshal(router.presenter.Block(result))
+	byteData, err := json.Marshal(router.presenter.Block(block))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
