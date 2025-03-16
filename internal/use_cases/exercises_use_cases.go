@@ -20,10 +20,12 @@ func NewExercisesUseCase(st *storage.Storage) *ExercisesUseCase {
 
 func (euc *ExercisesUseCase) List(req *requests.FilterExercisesRequestBody) ([]*models.Exercise, error) {
 	var exercises []*models.Exercise
-	//if req.BlockID  {
-	//
-	//}
-	euc.storage.DB.Joins("JOIN exercises_blocks eb ON eb.exercise_id = exercises.id")
+
+	if len(req.BlockIDs) != 0 {
+		result := euc.storage.DB.Joins("INNER JOIN exercise_blocks ON exercise_blocks.exercise_id = exercises.id").
+			Where("exercise_blocks.block_id IN ?", req.BlockIDs).Find(&exercises)
+		return exercises, result.Error
+	}
 
 	result := euc.storage.DB.Order(fmt.Sprintf("updated_at %s", req.UpdatedAt)).Find(&exercises)
 	return exercises, result.Error
