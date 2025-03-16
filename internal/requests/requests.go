@@ -25,6 +25,7 @@ type FilterExercisesRequestBody struct {
 	UpdatedAt  string `json:"updatedAt"`
 	CreatedAt  string `json:"createdAt"`
 	Ids        bool   `json:"ids,omitempty"`
+	BlockIDs   []uint `json:"blockIds"`
 	Suggestion string `json:"suggestion,omitempty"`
 }
 
