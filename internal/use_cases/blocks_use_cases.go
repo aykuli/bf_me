@@ -5,6 +5,7 @@ import (
 	"bf_me/internal/requests"
 	"bf_me/internal/storage"
 	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"math"
 )
@@ -25,7 +26,18 @@ func NewBlocksUseCase(st *storage.Storage) *BlocksUseCase {
 
 func (buc *BlocksUseCase) List(req *requests.FilterBlocksRequestBody) ([]*models.Block, error) {
 	var blocks []*models.Block
-	result := buc.storage.DB.Where("draft = ?", req.Draft).Order("updated_at DESC").Find(&blocks)
+	updatedAtSql := fmt.Sprintf("updated_at %s", req.UpdatedAt)
+	if req.BlockType == "draft" {
+		result := buc.storage.DB.Where("draft = ?", true).Order(updatedAtSql).Preload("ExerciseBlocks").Find(&blocks)
+		return blocks, result.Error
+	}
+
+	if req.BlockType == "ready" {
+		result := buc.storage.DB.Where("draft = ?", false).Order(updatedAtSql).Preload("ExerciseBlocks").Find(&blocks)
+		return blocks, result.Error
+	}
+
+	result := buc.storage.DB.Order("updated_at DESC").Preload("ExerciseBlocks").Find(&blocks)
 	return blocks, result.Error
 }
 

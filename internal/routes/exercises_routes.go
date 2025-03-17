@@ -38,7 +38,7 @@ func RegisterExercisesRoutes(mux *http.ServeMux, st *storage.Storage) {
 }
 
 func (router *ExercisesRouter) list(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
+	if r.Method != http.MethodPost {
 		http.Error(w, "No such endpoint", http.StatusNotFound)
 		return
 	}

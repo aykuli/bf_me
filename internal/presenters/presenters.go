@@ -108,6 +108,7 @@ func (p *Presenter) Blocks(bs []*models.Block) []*Block {
 			OnTime:        block.OnTime,
 			RelaxTime:     block.RelaxTime,
 			Draft:         block.Draft,
+			ExercisesIds:  p.buildBlockExerciseIds(block.ExerciseBlocks),
 		}
 	}
 	return exercises

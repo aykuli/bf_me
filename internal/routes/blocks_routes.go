@@ -9,10 +9,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"net/http"
 	"slices"
 	"strconv"
+
+	"gorm.io/gorm"
 )
 
 type BlocksRouter struct {
@@ -71,12 +72,12 @@ func (router *BlocksRouter) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (router *BlocksRouter) list(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
+	if r.Method != http.MethodPost {
 		http.Error(w, "No such endpoint", http.StatusNotFound)
 		return
 	}
 
-	req := requests.FilterBlocksRequestBody{Draft: false}
+	req := requests.FilterBlocksRequestBody{UpdatedAt: "DESC"}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
