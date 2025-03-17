@@ -49,6 +49,7 @@ type BlockRequestBody struct {
 }
 
 type FilterBlocksRequestBody struct {
-	BlockType string `json:"blockType"` // draft, ready
-	UpdatedAt string `json:"updatedAt"`
+	BlockType  string `json:"blockType"` // draft, ready
+	UpdatedAt  string `json:"updatedAt"`
+	Suggestion string `json:"suggestion,omitempty"`
 }
