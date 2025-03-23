@@ -198,12 +198,14 @@ func (buc *BlocksUseCase) Update(id int, req *requests.BlockRequestBody) (*model
 		return nil, result.Error
 	}
 
-	if req.Draft == false {
-		full := buc.checkBlockFullOfExercises(&block)
-		if full == false {
-			return nil, ErrBlockNotReady
-		}
-	}
+	//fmt.Printf("\nreq: %+v\n\n", req)
+
+	//if req.Draft == false && req.TitleEn == "" && req.TitleRu == "" {
+	//	full := buc.checkBlockFullOfExercises(&block)
+	//	if full == false {
+	//		return nil, ErrBlockNotReady
+	//	}
+	//}
 
 	buc.fitTiming(&block)
 
