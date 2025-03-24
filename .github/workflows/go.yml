@@ -28,9 +28,7 @@ jobs:
           MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
           MINIO_URL: ${{ secrets.MINIO_URL }}
           MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
-        run: |
-          go build -o fitmeapp .
-          ls -alh
+        run: go build -o fitmeapp .
 
       - name: Copy builded app file
         uses: appleboy/scp-action@v0.1.7
@@ -51,6 +49,6 @@ jobs:
           user: ${{ secrets.USERNAME }}
           private_key: ${{ secrets.PRIVATE_KEY }}
           command: |
-            cd ${{ secrets.REMOTE_PROJECT_FOLDER }}
-            kill $(ps aux | grep './fitmeapp' | grep -v grep | awk '{print $2}')
+            cd ${{ secrets.REMOTE_PROJECT_FOLDER }};
+            kill $(ps aux | grep './fitmeapp' | grep -v grep | awk '{print $2}');
             ./fitmeapp &
