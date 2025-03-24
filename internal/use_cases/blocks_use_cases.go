@@ -135,9 +135,7 @@ func (buc *BlocksUseCase) updateBlock(block models.Block, req requests.BlockRequ
 		block.OnTime = req.OnTime
 	}
 	block.RelaxTime = req.RelaxTime
-	if req.Draft != block.Draft {
-		block.Draft = req.Draft
-	}
+
 	return &block, nil
 }
 
@@ -216,6 +214,23 @@ func (buc *BlocksUseCase) Update(id int, req *requests.BlockRequestBody) (*model
 
 	result = buc.storage.DB.Save(&updatedBlock)
 	return updatedBlock, result.Error
+}
+
+func (buc *BlocksUseCase) ToggleDraft(id int) (*models.Block, error) {
+	var block models.Block
+	result := buc.storage.DB.Preload("ExerciseBlocks").First(&block, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	if block.Draft {
+		block.Draft = false
+	} else {
+		block.Draft = true
+	}
+
+	result = buc.storage.DB.Save(&block)
+	return &block, result.Error
 }
 
 func (buc *BlocksUseCase) Delete(id int) error {

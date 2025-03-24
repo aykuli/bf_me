@@ -37,6 +37,7 @@ func RegisterBlocksRoutes(mux *http.ServeMux, st *storage.Storage) {
 
 	// action is enum of ["add", "remove"]
 	mux.HandleFunc("/api/v1/blocks/{block_id}/{action}/exercise/{exercise_id}", AuthMiddleware(router.authUseCase, router.handleExercise))
+	mux.HandleFunc("/api/v1/blocks/{id}/toggle_draft", AuthMiddleware(router.authUseCase, router.toggleDraft))
 	mux.HandleFunc("/api/v1/blocks/{id}", AuthMiddleware(router.authUseCase, router.mux))
 }
 
@@ -179,6 +180,42 @@ func (router *BlocksRouter) mux(w http.ResponseWriter, r *http.Request) {
 		router.delete(idInt, w, r)
 		return
 	}
+}
+
+func (router *BlocksRouter) toggleDraft(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "No such endpoint", http.StatusNotFound)
+		return
+	}
+
+	idInt, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, fmt.Errorf("invalid id provided: %s", err).Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	result, err := router.useCase.ToggleDraft(idInt)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	byteData, err := json.Marshal(router.presenter.Block(result))
+	if err != nil {
+		http.Error(w, fmt.Sprintf("json encoding err: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if _, err = w.Write(byteData); err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+	}
+
 }
 
 func (router *BlocksRouter) get(id int, w http.ResponseWriter, _ *http.Request) {

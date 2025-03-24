@@ -41,14 +41,15 @@ jobs:
           source: fitmeapp
           target: ${{ secrets.REMOTE_PROJECT_FOLDER }}
 
-      - name: Kill old and run new app
-        uses: D3rHase/ssh-command-action@latest
-        with:
-          host: ${{ secrets.HOST }}
-          port: ${{ secrets.PORT }}
-          user: ${{ secrets.USERNAME }}
-          private_key: ${{ secrets.PRIVATE_KEY }}
-          command: |
-            cd ${{ secrets.REMOTE_PROJECT_FOLDER }};
-            kill $(ps aux | grep './fitmeapp' | grep -v grep | awk '{print $2}');
-            ./fitmeapp &;
+#      - name: Kill old and run new app
+#        uses: D3rHase/ssh-command-action@latest
+#        with:
+#          host: ${{ secrets.HOST }}
+#          port: ${{ secrets.PORT }}
+#          user: ${{ secrets.USERNAME }}
+#          private_key: ${{ secrets.PRIVATE_KEY }}
+#          command: |
+#            cd ${{ secrets.REMOTE_PROJECT_FOLDER }};
+#            kill $(ps aux | grep './fitmeapp' | grep -v grep | awk '{print $2}');
+#            ./fitmeapp &
+

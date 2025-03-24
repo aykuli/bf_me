@@ -45,7 +45,6 @@ type BlockRequestBody struct {
 	TotalDuration uint8  `json:"totalDuration"`
 	OnTime        uint8  `json:"onTime"`
 	RelaxTime     uint8  `json:"relaxTime"`
-	Draft         bool   `json:"draft"`
 }
 
 type FilterBlocksRequestBody struct {
