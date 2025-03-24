@@ -51,4 +51,4 @@ jobs:
           command: |
             cd ${{ secrets.REMOTE_PROJECT_FOLDER }};
             kill $(ps aux | grep './fitmeapp' | grep -v grep | awk '{print $2}');
-            ./fitmeapp &
+            ./fitmeapp &;
