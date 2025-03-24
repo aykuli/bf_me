@@ -32,7 +32,7 @@ jobs:
           go build -o fitmeapp .
           ls -alh
 
-      - name: Deploy
+      - name: Copy builded app file
         uses: appleboy/scp-action@v0.1.7
         if: github.ref == 'refs/heads/master'
         with:
@@ -42,3 +42,15 @@ jobs:
           port: ${{ secrets.PORT }}
           source: fitmeapp
           target: ${{ secrets.REMOTE_PROJECT_FOLDER }}
+
+      - name: Kill old and run new app
+        uses: D3rHase/ssh-command-action@latest
+        with:
+          host: ${{ secrets.HOST }}
+          port: ${{ secrets.PORT }}
+          user: ${{ secrets.USERNAME }}
+          private_key: ${{ secrets.PRIVATE_KEY }}
+          command: |
+            cd ${{ secrets.REMOTE_PROJECT_FOLDER }}
+            kill $(ps aux | grep './fitmeapp' | grep -v grep | awk '{print $2}')
+            ./fitmeapp &
