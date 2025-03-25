@@ -47,7 +47,7 @@ type BlockRequestBody struct {
 	RelaxTime     uint8  `json:"relaxTime"`
 }
 
-type FilterBlocksRequestBody struct {
+type FilterRequestBody struct {
 	BlockType  string `json:"blockType"` // draft, ready
 	UpdatedAt  string `json:"updatedAt"`
 	Suggestion string `json:"suggestion,omitempty"`
@@ -55,4 +55,9 @@ type FilterBlocksRequestBody struct {
 
 type AddBlockExerciseRequestBody struct {
 	Side string `json:"side"` // undefined, left and right
+}
+
+type TrainingRequestBody struct {
+	TitleEn string `json:"titleEn"`
+	TitleRu string `json:"titleRu"`
 }

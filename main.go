@@ -34,8 +34,9 @@ func main() {
 
 	// ------- ROUTES -------
 	routes.RegisterSessionsRoutes(mux, st)
-	routes.RegisterBlocksRoutes(mux, st)
 	routes.RegisterExercisesRoutes(mux, st)
+	routes.RegisterBlocksRoutes(mux, st)
+	routes.RegisterTrainingsRoutes(mux, st)
 
 	// ------- SERVER -------
 	c := cors.New(cors.Options{

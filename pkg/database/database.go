@@ -39,5 +39,18 @@ func New(uri string) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to migrate tables %s", err)
 	}
 
+	err = db.SetupJoinTable(&models.Training{}, "Blocks", &models.TrainingBlock{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to set up join table between exercises and blocks tables %s", err)
+	}
+	err = db.AutoMigrate(&models.Training{}, &models.TrainingBlock{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to migrate tables %s", err)
+	}
+
+	result = db.Exec("ALTER TABLE training_blocks ADD CONSTRAINT uniq_training_block UNIQUE (training_id, block_id)")
+	if result.Error != nil {
+		return nil, fmt.Errorf("failed to create constraint: %s", err)
+	}
 	return db, err
 }

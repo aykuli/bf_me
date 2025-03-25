@@ -25,8 +25,8 @@ func NewBlocksUseCase(st *storage.Storage) *BlocksUseCase {
 	return &BlocksUseCase{storage: st}
 }
 
-func (buc *BlocksUseCase) List(req *requests.FilterBlocksRequestBody) ([]*models.Block, error) {
-	var blocks []*models.Block
+func (buc *BlocksUseCase) List(req *requests.FilterRequestBody) ([]models.Block, error) {
+	var blocks []models.Block
 	updatedAtSql := fmt.Sprintf("updated_at %s", req.UpdatedAt)
 
 	if req.Suggestion != "" {
