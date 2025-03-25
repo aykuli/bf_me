@@ -30,13 +30,13 @@ func newTrainingsRouter(st *storage.Storage) *TrainingRouter {
 	}
 }
 
-func RegisterTrainingRouter(mux *http.ServeMux, st *storage.Storage) {
+func RegisterTrainingsRoutes(mux *http.ServeMux, st *storage.Storage) {
 	router := newTrainingsRouter(st)
 	mux.HandleFunc("/api/v1/trainings/create", AuthMiddleware(router.authUseCase, router.create))
 	mux.HandleFunc("/api/v1/trainings/list", AuthMiddleware(router.authUseCase, router.list))
 
 	// action is enum of ["add", "remove"]
-	mux.HandleFunc("/api/v1/trainings/{training_id}/{action}/block/{block_id}", AuthMiddleware(router.authUseCase, router.handleExercise))
+	mux.HandleFunc("/api/v1/trainings/{training_id}/{action}/block/{block_id}", AuthMiddleware(router.authUseCase, router.handleBlock))
 	mux.HandleFunc("/api/v1/trainings/{id}/toggle_draft", AuthMiddleware(router.authUseCase, router.toggleDraft))
 	mux.HandleFunc("/api/v1/trainings/{id}", AuthMiddleware(router.authUseCase, router.mux))
 }
@@ -90,7 +90,7 @@ func (router *TrainingRouter) list(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	byteData, err := json.Marshal(router.presenter.Blocks(result))
+	byteData, err := json.Marshal(router.presenter.Trainings(result))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -105,7 +105,7 @@ func (router *TrainingRouter) list(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (router *TrainingRouter) handleExercise(w http.ResponseWriter, r *http.Request) {
+func (router *TrainingRouter) handleBlock(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "No such endpoint", http.StatusNotFound)
 		return
@@ -117,24 +117,24 @@ func (router *TrainingRouter) handleExercise(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	trainingIDStr := r.PathValue("training_id")
 	blockIDStr := r.PathValue("block_id")
-	exerciseIDStr := r.PathValue("exercise_id")
 	blockID, err := strconv.ParseUint(blockIDStr, 10, 8)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
-	exerciseID, err := strconv.ParseUint(exerciseIDStr, 10, 8)
+	trainingID, err := strconv.ParseUint(trainingIDStr, 10, 8)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 
-	var block *models.Block
+	var training *models.Training
 	if action == "add" {
-		block, err = router.useCase.AddBlockExercise(uint(blockID), uint(exerciseID))
+		training, err = router.useCase.AddTrainingBlock(uint(trainingID), uint(blockID))
 	} else {
-		block, err = router.useCase.RemoveBlockExercise(uint(blockID), uint(exerciseID))
+		training, err = router.useCase.RemoveTrainingBlock(uint(trainingID), uint(blockID))
 	}
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -146,7 +146,7 @@ func (router *TrainingRouter) handleExercise(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	byteData, err := json.Marshal(router.presenter.Block(block))
+	byteData, err := json.Marshal(router.presenter.Training(training))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -204,7 +204,7 @@ func (router *TrainingRouter) toggleDraft(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	byteData, err := json.Marshal(router.presenter.Block(result))
+	byteData, err := json.Marshal(router.presenter.Training(result))
 	if err != nil {
 		http.Error(w, fmt.Sprintf("json encoding err: %s", err.Error()), http.StatusInternalServerError)
 		return
@@ -229,7 +229,7 @@ func (router *TrainingRouter) get(id int, w http.ResponseWriter, _ *http.Request
 		return
 	}
 
-	byteData, err := json.Marshal(router.presenter.Block(result))
+	byteData, err := json.Marshal(router.presenter.Training(result))
 	if err != nil {
 		http.Error(w, fmt.Sprintf("json encoding err: %s", err.Error()), http.StatusInternalServerError)
 		return
@@ -243,7 +243,7 @@ func (router *TrainingRouter) get(id int, w http.ResponseWriter, _ *http.Request
 }
 
 func (router *TrainingRouter) update(id int, w http.ResponseWriter, r *http.Request) {
-	var req requests.BlockRequestBody
+	var req requests.TrainingRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
@@ -255,7 +255,7 @@ func (router *TrainingRouter) update(id int, w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	byteData, err := json.Marshal(router.presenter.Block(result))
+	byteData, err := json.Marshal(router.presenter.Training(result))
 	if err != nil {
 		http.Error(w, fmt.Sprintf("json encoding err: %s", err.Error()), http.StatusInternalServerError)
 		return

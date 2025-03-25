@@ -89,11 +89,11 @@ func (p *Presenter) Block(block *models.Block) *Block {
 		OnTime:        block.OnTime,
 		RelaxTime:     block.RelaxTime,
 		Draft:         block.Draft,
-		Exercises:     p.buildBlockExerciseIds(block),
+		Exercises:     p.buildBlockExercises(block),
 	}
 }
 
-func (p *Presenter) buildBlockExerciseIds(block *models.Block) []BlockExercise {
+func (p *Presenter) buildBlockExercises(block *models.Block) []BlockExercise {
 	slices.SortFunc(block.ExerciseBlocks, func(a, b models.ExerciseBlock) int {
 		return int(a.ExerciseOrder - b.ExerciseOrder)
 	})
@@ -123,7 +123,7 @@ func (p *Presenter) takeExerciseByID(exercises []models.Exercise, exerciseID uin
 	return nil
 }
 
-func (p *Presenter) Blocks(bs []*models.Block) []*Block {
+func (p *Presenter) Blocks(bs []models.Block) []*Block {
 	exercises := make([]*Block, len(bs))
 	for i, block := range bs {
 		exercises[i] = &Block{
@@ -141,8 +141,35 @@ func (p *Presenter) Blocks(bs []*models.Block) []*Block {
 }
 
 type Training struct {
-	ID        uint      `json:"id"`
-	CreatedAt time.Time `json:"createdAt"`
-	TitleEn   string    `json:"titleEn"`
-	TitleRu   string    `json:"titleRu"`
+	ID        uint     `json:"id"`
+	CreatedAt string   `json:"createdAt"`
+	TitleEn   string   `json:"titleEn"`
+	TitleRu   string   `json:"titleRu"`
+	Draft     bool     `json:"draft"`
+	Blocks    []*Block `json:"blocks"`
+}
+
+func (p *Presenter) Training(tr *models.Training) Training {
+	return Training{
+		ID:        tr.ID,
+		CreatedAt: tr.CreatedAt.Format("January 2, 2006"),
+		TitleEn:   tr.TitleEn,
+		TitleRu:   tr.TitleRu,
+		Draft:     tr.Draft,
+		Blocks:    p.Blocks(tr.Blocks),
+	}
+}
+func (p *Presenter) Trainings(trs []*models.Training) []*Training {
+	arrTrs := make([]*Training, len(trs))
+	for i, tr := range trs {
+		arrTrs[i] = &Training{
+			ID:        tr.ID,
+			CreatedAt: tr.CreatedAt.Format("January 2, 2006"),
+			TitleEn:   tr.TitleEn,
+			TitleRu:   tr.TitleRu,
+			Draft:     tr.Draft,
+			Blocks:    p.Blocks(tr.Blocks),
+		}
+	}
+	return arrTrs
 }

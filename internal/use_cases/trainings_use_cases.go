@@ -40,7 +40,7 @@ func (tuc *TrainingsUseCase) List(req *requests.FilterRequestBody) ([]*models.Tr
 		return trainings, result.Error
 	}
 
-	result := tuc.storage.DB.Order(updatedAtSql).Preload("TrainingBlocks").Find(&trainings)
+	result := tuc.storage.DB.Order(updatedAtSql).Preload("TrainingBlocks").Preload("Blocks").Find(&trainings)
 	return trainings, result.Error
 }
 
@@ -80,12 +80,12 @@ func (tuc *TrainingsUseCase) AddTrainingBlock(trainingID, blockID uint) (*models
 		return nil, result.Error
 	}
 
-	result = tuc.storage.DB.Preload("ExerciseBlocks").First(&block, blockID)
+	result = tuc.storage.DB.Preload("TrainingBlocks").Preload("Blocks").First(&training, trainingID)
 	return &training, result.Error
 }
 
-func (tuc *TrainingsUseCase) RemoveBlockExercise(trainingID, blockID uint) (*models.Training, error) {
-	var trainingBlockRelation models.ExerciseBlock
+func (tuc *TrainingsUseCase) RemoveTrainingBlock(trainingID, blockID uint) (*models.Training, error) {
+	var trainingBlockRelation models.TrainingBlock
 	result := tuc.storage.DB.First(&trainingBlockRelation, "training_id = ? AND block_id = ?", trainingID, blockID)
 	if result.Error != nil {
 		return nil, result.Error
@@ -97,7 +97,7 @@ func (tuc *TrainingsUseCase) RemoveBlockExercise(trainingID, blockID uint) (*mod
 	}
 
 	var training models.Training
-	result = tuc.storage.DB.Preload("TrainingBlocks").First(&training, blockID)
+	result = tuc.storage.DB.Preload("TrainingBlocks").Preload("Blocks").First(&training, trainingID)
 	return &training, result.Error
 }
 
@@ -142,7 +142,7 @@ func (tuc *TrainingsUseCase) Find(id int) (*models.Training, error) {
 
 func (tuc *TrainingsUseCase) Update(id int, req *requests.TrainingRequestBody) (*models.Training, error) {
 	var training models.Training
-	result := tuc.storage.DB.Preload("TrainingBlocks").First(&training, id)
+	result := tuc.storage.DB.Preload("TrainingBlocks").Preload("Blocks").First(&training, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -158,7 +158,7 @@ func (tuc *TrainingsUseCase) Update(id int, req *requests.TrainingRequestBody) (
 
 func (tuc *TrainingsUseCase) ToggleDraft(id int) (*models.Training, error) {
 	var training models.Training
-	result := tuc.storage.DB.Preload("TrainingBlocks").First(&training, id)
+	result := tuc.storage.DB.Preload("TrainingBlocks").Preload("Blocks").First(&training, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
