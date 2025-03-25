@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"math"
+	"slices"
 )
 
 var (
@@ -47,14 +48,14 @@ func (buc *BlocksUseCase) List(req *requests.FilterBlocksRequestBody) ([]*models
 	return blocks, result.Error
 }
 
-func (buc *BlocksUseCase) AddBlockExercise(blockID, exerciseID uint) (*models.Block, error) {
+func (buc *BlocksUseCase) AddBlockExercise(blockID, exerciseID uint, req *requests.AddBlockExerciseRequestBody) (*models.Block, error) {
 	var block models.Block
 	result := buc.storage.DB.Preload("ExerciseBlocks").First(&block, blockID)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 	if !block.Draft {
-		return nil, errors.New("block is not draft\ncannot add exercise")
+		return nil, errors.New("block is not draft\nyou cannot add exercise")
 	}
 	//check if exercises count is not reached its highest level
 	full := buc.checkBlockFullOfExercises(&block)
@@ -78,10 +79,15 @@ func (buc *BlocksUseCase) AddBlockExercise(blockID, exerciseID uint) (*models.Bl
 	}
 
 	nextOrder := buc.findNextOrder(block.ExerciseBlocks)
+	side := ""
+	if slices.Contains([]string{"right", "left", ""}, req.Side) {
+		side = req.Side
+	}
 	eb := models.ExerciseBlock{
 		ExerciseID:    exerciseID,
 		BlockID:       blockID,
 		ExerciseOrder: nextOrder,
+		Side:          side,
 	}
 	result = buc.storage.DB.Create(&eb)
 	if result.Error != nil {
@@ -185,28 +191,18 @@ func (buc *BlocksUseCase) fitTiming(block *models.Block) {
 
 func (buc *BlocksUseCase) Find(id int) (*models.Block, error) {
 	var block models.Block
-	result := buc.storage.DB.Preload("ExerciseBlocks").First(&block, id)
+	result := buc.storage.DB.Preload("ExerciseBlocks").Preload("Exercises").First(&block, id)
 	return &block, result.Error
 }
 
 func (buc *BlocksUseCase) Update(id int, req *requests.BlockRequestBody) (*models.Block, error) {
 	var block models.Block
-	result := buc.storage.DB.Preload("ExerciseBlocks").First(&block, id)
+	result := buc.storage.DB.Preload("ExerciseBlocks").Preload("Exercises").First(&block, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	//fmt.Printf("\nreq: %+v\n\n", req)
-
-	//if req.Draft == false && req.TitleEn == "" && req.TitleRu == "" {
-	//	full := buc.checkBlockFullOfExercises(&block)
-	//	if full == false {
-	//		return nil, ErrBlockNotReady
-	//	}
-	//}
-
 	buc.fitTiming(&block)
-
 	updatedBlock, err := buc.updateBlock(block, *req)
 	if err != nil {
 		return nil, err

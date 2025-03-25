@@ -132,7 +132,12 @@ func (router *BlocksRouter) handleExercise(w http.ResponseWriter, r *http.Reques
 
 	var block *models.Block
 	if action == "add" {
-		block, err = router.useCase.AddBlockExercise(uint(blockID), uint(exerciseID))
+		req := requests.AddBlockExerciseRequestBody{}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+			return
+		}
+		block, err = router.useCase.AddBlockExercise(uint(blockID), uint(exerciseID), &req)
 	} else {
 		block, err = router.useCase.RemoveBlockExercise(uint(blockID), uint(exerciseID))
 	}

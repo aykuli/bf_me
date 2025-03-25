@@ -52,3 +52,7 @@ type FilterBlocksRequestBody struct {
 	UpdatedAt  string `json:"updatedAt"`
 	Suggestion string `json:"suggestion,omitempty"`
 }
+
+type AddBlockExerciseRequestBody struct {
+	Side string `json:"side"` // undefined, left and right
+}
