@@ -16,38 +16,38 @@ import (
 	"gorm.io/gorm"
 )
 
-type BlocksRouter struct {
+type TrainingRouter struct {
 	presenter   *presenters.Presenter
-	useCase     *use_cases.BlocksUseCase
+	useCase     *use_cases.TrainingsUseCase
 	authUseCase *use_cases.SessionsUseCase
 }
 
-func newBlocksRouter(st *storage.Storage) *BlocksRouter {
-	return &BlocksRouter{
+func newTrainingsRouter(st *storage.Storage) *TrainingRouter {
+	return &TrainingRouter{
 		presenter:   presenters.NewPresenter(),
-		useCase:     use_cases.NewBlocksUseCase(st),
+		useCase:     use_cases.NewTrainingsUseCase(st),
 		authUseCase: use_cases.NewSessionsUseCase(st),
 	}
 }
 
-func RegisterBlocksRoutes(mux *http.ServeMux, st *storage.Storage) {
-	router := newBlocksRouter(st)
-	mux.HandleFunc("/api/v1/blocks/create", AuthMiddleware(router.authUseCase, router.create))
-	mux.HandleFunc("/api/v1/blocks/list", AuthMiddleware(router.authUseCase, router.list))
+func RegisterTrainingRouter(mux *http.ServeMux, st *storage.Storage) {
+	router := newTrainingsRouter(st)
+	mux.HandleFunc("/api/v1/trainings/create", AuthMiddleware(router.authUseCase, router.create))
+	mux.HandleFunc("/api/v1/trainings/list", AuthMiddleware(router.authUseCase, router.list))
 
 	// action is enum of ["add", "remove"]
-	mux.HandleFunc("/api/v1/blocks/{block_id}/{action}/exercise/{exercise_id}", AuthMiddleware(router.authUseCase, router.handleExercise))
-	mux.HandleFunc("/api/v1/blocks/{id}/toggle_draft", AuthMiddleware(router.authUseCase, router.toggleDraft))
-	mux.HandleFunc("/api/v1/blocks/{id}", AuthMiddleware(router.authUseCase, router.mux))
+	mux.HandleFunc("/api/v1/trainings/{training_id}/{action}/block/{block_id}", AuthMiddleware(router.authUseCase, router.handleExercise))
+	mux.HandleFunc("/api/v1/trainings/{id}/toggle_draft", AuthMiddleware(router.authUseCase, router.toggleDraft))
+	mux.HandleFunc("/api/v1/trainings/{id}", AuthMiddleware(router.authUseCase, router.mux))
 }
 
-func (router *BlocksRouter) create(w http.ResponseWriter, r *http.Request) {
+func (router *TrainingRouter) create(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "No such endpoint", http.StatusNotFound)
 		return
 	}
 
-	var req requests.BlockRequestBody
+	var req requests.TrainingRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
@@ -59,7 +59,7 @@ func (router *BlocksRouter) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	byteData, err := json.Marshal(router.presenter.Block(result))
+	byteData, err := json.Marshal(router.presenter.Training(result))
 	if err != nil {
 		http.Error(w, fmt.Sprintf("json encoding err: %s", err.Error()), http.StatusInternalServerError)
 		return
@@ -72,7 +72,7 @@ func (router *BlocksRouter) create(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (router *BlocksRouter) list(w http.ResponseWriter, r *http.Request) {
+func (router *TrainingRouter) list(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "No such endpoint", http.StatusNotFound)
 		return
@@ -105,7 +105,7 @@ func (router *BlocksRouter) list(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (router *BlocksRouter) handleExercise(w http.ResponseWriter, r *http.Request) {
+func (router *TrainingRouter) handleExercise(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "No such endpoint", http.StatusNotFound)
 		return
@@ -132,12 +132,7 @@ func (router *BlocksRouter) handleExercise(w http.ResponseWriter, r *http.Reques
 
 	var block *models.Block
 	if action == "add" {
-		req := requests.AddBlockExerciseRequestBody{}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
-			return
-		}
-		block, err = router.useCase.AddBlockExercise(uint(blockID), uint(exerciseID), &req)
+		block, err = router.useCase.AddBlockExercise(uint(blockID), uint(exerciseID))
 	} else {
 		block, err = router.useCase.RemoveBlockExercise(uint(blockID), uint(exerciseID))
 	}
@@ -166,7 +161,7 @@ func (router *BlocksRouter) handleExercise(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func (router *BlocksRouter) mux(w http.ResponseWriter, r *http.Request) {
+func (router *TrainingRouter) mux(w http.ResponseWriter, r *http.Request) {
 	idInt, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, fmt.Errorf("invalid id provided: %s", err).Error(), http.StatusUnprocessableEntity)
@@ -187,7 +182,7 @@ func (router *BlocksRouter) mux(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (router *BlocksRouter) toggleDraft(w http.ResponseWriter, r *http.Request) {
+func (router *TrainingRouter) toggleDraft(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "No such endpoint", http.StatusNotFound)
 		return
@@ -223,7 +218,7 @@ func (router *BlocksRouter) toggleDraft(w http.ResponseWriter, r *http.Request) 
 
 }
 
-func (router *BlocksRouter) get(id int, w http.ResponseWriter, _ *http.Request) {
+func (router *TrainingRouter) get(id int, w http.ResponseWriter, _ *http.Request) {
 	result, err := router.useCase.Find(id)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -247,7 +242,7 @@ func (router *BlocksRouter) get(id int, w http.ResponseWriter, _ *http.Request) 
 	}
 }
 
-func (router *BlocksRouter) update(id int, w http.ResponseWriter, r *http.Request) {
+func (router *TrainingRouter) update(id int, w http.ResponseWriter, r *http.Request) {
 	var req requests.BlockRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
@@ -273,7 +268,7 @@ func (router *BlocksRouter) update(id int, w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func (router *BlocksRouter) delete(id int, w http.ResponseWriter, _ *http.Request) {
+func (router *TrainingRouter) delete(id int, w http.ResponseWriter, _ *http.Request) {
 	err := router.useCase.Delete(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)

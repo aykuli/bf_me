@@ -139,3 +139,10 @@ func (p *Presenter) Blocks(bs []*models.Block) []*Block {
 	}
 	return exercises
 }
+
+type Training struct {
+	ID        uint      `json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
+	TitleEn   string    `json:"titleEn"`
+	TitleRu   string    `json:"titleRu"`
+}
