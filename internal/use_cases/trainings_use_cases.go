@@ -136,7 +136,17 @@ func (tuc *TrainingsUseCase) Create(req *requests.TrainingRequestBody) (*models.
 
 func (tuc *TrainingsUseCase) Find(id int) (*models.Training, error) {
 	var training models.Training
-	result := tuc.storage.DB.Preload("TrainingBlocks").First(&training, id)
+	result := tuc.storage.DB.Preload("TrainingBlocks").
+		Preload("Blocks").Preload("Blocks.ExerciseBlocks").First(&training, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	var exercises []models.Exercise
+	result = tuc.storage.DB.Preload("ExerciseBlocks").Preload("Exercises").Where("").Find(&exercises)
+
+	fmt.Printf("%+v\n\n\n", training)
+	fmt.Printf("%+v\n\n\n", result)
 	return &training, result.Error
 }
 

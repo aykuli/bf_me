@@ -34,17 +34,21 @@ func (buc *BlocksUseCase) List(req *requests.FilterRequestBody) ([]models.Block,
 		return blocks, result.Error
 	}
 
-	if req.BlockType == "draft" {
-		result := buc.storage.DB.Where("draft = ?", true).Order(updatedAtSql).Preload("ExerciseBlocks").Find(&blocks)
+	if req.BlockType != "" {
+		whereClause := ""
+		if req.BlockType == "draft" {
+			whereClause = "draft = true"
+		}
+
+		if req.BlockType == "ready" {
+			whereClause = "draft = false"
+		}
+
+		result := buc.storage.DB.Where(whereClause).Order(updatedAtSql).Preload("ExerciseBlocks").Preload("Exercises").Find(&blocks)
 		return blocks, result.Error
 	}
 
-	if req.BlockType == "ready" {
-		result := buc.storage.DB.Where("draft = ?", false).Order(updatedAtSql).Preload("ExerciseBlocks").Find(&blocks)
-		return blocks, result.Error
-	}
-
-	result := buc.storage.DB.Order(updatedAtSql).Preload("ExerciseBlocks").Find(&blocks)
+	result := buc.storage.DB.Order(updatedAtSql).Preload("ExerciseBlocks").Preload("Exercises").Find(&blocks)
 	return blocks, result.Error
 }
 
@@ -94,7 +98,7 @@ func (buc *BlocksUseCase) AddBlockExercise(blockID, exerciseID uint, req *reques
 		return nil, result.Error
 	}
 
-	result = buc.storage.DB.Preload("ExerciseBlocks").First(&block, blockID)
+	result = buc.storage.DB.Preload("ExerciseBlocks").Preload("Exercises").First(&block, blockID)
 	return &block, result.Error
 }
 
@@ -111,7 +115,7 @@ func (buc *BlocksUseCase) RemoveBlockExercise(blockID, exerciseID uint) (*models
 	}
 
 	var block models.Block
-	result = buc.storage.DB.Preload("ExerciseBlocks").First(&block, blockID)
+	result = buc.storage.DB.Preload("ExerciseBlocks").Preload("Exercises").First(&block, blockID)
 	return &block, result.Error
 }
 
@@ -214,7 +218,7 @@ func (buc *BlocksUseCase) Update(id int, req *requests.BlockRequestBody) (*model
 
 func (buc *BlocksUseCase) ToggleDraft(id int) (*models.Block, error) {
 	var block models.Block
-	result := buc.storage.DB.Preload("ExerciseBlocks").First(&block, id)
+	result := buc.storage.DB.Preload("ExerciseBlocks").Preload("Exercises").First(&block, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}

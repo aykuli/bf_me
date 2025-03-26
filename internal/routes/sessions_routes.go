@@ -66,13 +66,13 @@ func (router *SessionRouter) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req requests.UserRequestBody
+	var req *requests.UserRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 
-	session, err := router.useCase.Create(&req)
+	session, err := router.useCase.Create(req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
