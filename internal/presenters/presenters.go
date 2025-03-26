@@ -140,20 +140,21 @@ type Training struct {
 	Blocks    []*Block `json:"blocks"`
 }
 
-func (p *Presenter) Training(tr *models.Training) Training {
+func (p *Presenter) Training(tr *models.Training, blocks []models.Block) Training {
 	return Training{
 		ID:        tr.ID,
 		CreatedAt: tr.CreatedAt.Format("January 2, 2006"),
 		TitleEn:   tr.TitleEn,
 		TitleRu:   tr.TitleRu,
 		Draft:     tr.Draft,
-		Blocks:    p.Blocks(tr.Blocks),
+		Blocks:    p.Blocks(blocks),
 	}
 }
+
 func (p *Presenter) Trainings(trs []*models.Training) []Training {
 	arrTrs := make([]Training, len(trs))
 	for i, tr := range trs {
-		arrTrs[i] = p.Training(tr)
+		arrTrs[i] = p.Training(tr, []models.Block{})
 	}
 	return arrTrs
 }

@@ -44,29 +44,29 @@ func (tuc *TrainingsUseCase) List(req *requests.FilterRequestBody) ([]*models.Tr
 	return trainings, result.Error
 }
 
-func (tuc *TrainingsUseCase) AddTrainingBlock(trainingID, blockID uint) (*models.Training, error) {
+func (tuc *TrainingsUseCase) AddTrainingBlock(trainingID, blockID uint) (*models.Training, []models.Block, error) {
 	var training models.Training
 	result := tuc.storage.DB.Preload("TrainingBlocks").First(&training, trainingID)
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, []models.Block{}, result.Error
 	}
 	if !training.Draft {
-		return nil, errors.New("block is not draft\ncannot add exercise")
+		return nil, []models.Block{}, errors.New("block is not draft\ncannot add exercise")
 	}
 
 	var block models.Block
 	result = tuc.storage.DB.First(&block, blockID)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, ErrTrainingDeleted
+		return nil, []models.Block{}, ErrTrainingDeleted
 	}
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, []models.Block{}, result.Error
 	}
 
 	var tbs []models.TrainingBlock
 	result = tuc.storage.DB.Where("training_id = ?", trainingID).Find(&tbs)
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, []models.Block{}, result.Error
 	}
 
 	nextOrder := tuc.findNextOrder(training.TrainingBlocks)
@@ -77,28 +77,52 @@ func (tuc *TrainingsUseCase) AddTrainingBlock(trainingID, blockID uint) (*models
 	}
 	result = tuc.storage.DB.Create(&eb)
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, []models.Block{}, result.Error
 	}
 
 	result = tuc.storage.DB.Preload("TrainingBlocks").Preload("Blocks").First(&training, trainingID)
-	return &training, result.Error
+	if result.Error != nil {
+		return nil, []models.Block{}, result.Error
+	}
+
+	blockIds := make([]uint, len(training.TrainingBlocks))
+	for i, t := range training.TrainingBlocks {
+		blockIds[i] = t.BlockID
+	}
+
+	var blocks []models.Block
+	result = tuc.storage.DB.Preload("ExerciseBlocks").Preload("Exercises").Where("id IN ?", blockIds).Find(&blocks)
+
+	return &training, blocks, result.Error
 }
 
-func (tuc *TrainingsUseCase) RemoveTrainingBlock(trainingID, blockID uint) (*models.Training, error) {
+func (tuc *TrainingsUseCase) RemoveTrainingBlock(trainingID, blockID uint) (*models.Training, []models.Block, error) {
 	var trainingBlockRelation models.TrainingBlock
 	result := tuc.storage.DB.First(&trainingBlockRelation, "training_id = ? AND block_id = ?", trainingID, blockID)
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, []models.Block{}, result.Error
 	}
 
 	result = tuc.storage.DB.Unscoped().Delete(&trainingBlockRelation)
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, []models.Block{}, result.Error
 	}
 
 	var training models.Training
 	result = tuc.storage.DB.Preload("TrainingBlocks").Preload("Blocks").First(&training, trainingID)
-	return &training, result.Error
+	if result.Error != nil {
+		return nil, []models.Block{}, result.Error
+	}
+
+	blockIds := make([]uint, len(training.TrainingBlocks))
+	for i, t := range training.TrainingBlocks {
+		blockIds[i] = t.BlockID
+	}
+
+	var blocks []models.Block
+	result = tuc.storage.DB.Preload("ExerciseBlocks").Preload("Exercises").Where("id IN ?", blockIds).Find(&blocks)
+
+	return &training, blocks, result.Error
 }
 
 func (tuc *TrainingsUseCase) findNextOrder(tbs []models.TrainingBlock) uint {
@@ -134,43 +158,57 @@ func (tuc *TrainingsUseCase) Create(req *requests.TrainingRequestBody) (*models.
 	return updatedTr, result.Error
 }
 
-func (tuc *TrainingsUseCase) Find(id int) (*models.Training, error) {
+func (tuc *TrainingsUseCase) Find(id int) (*models.Training, []models.Block, error) {
 	var training models.Training
-	result := tuc.storage.DB.Preload("TrainingBlocks").
-		Preload("Blocks").Preload("Blocks.ExerciseBlocks").First(&training, id)
+	result := tuc.storage.DB.Preload("TrainingBlocks").First(&training, id)
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, []models.Block{}, result.Error
 	}
 
-	var exercises []models.Exercise
-	result = tuc.storage.DB.Preload("ExerciseBlocks").Preload("Exercises").Where("").Find(&exercises)
+	blockIds := make([]uint, len(training.TrainingBlocks))
+	for i, t := range training.TrainingBlocks {
+		blockIds[i] = t.BlockID
+	}
 
-	fmt.Printf("%+v\n\n\n", training)
-	fmt.Printf("%+v\n\n\n", result)
-	return &training, result.Error
+	var blocks []models.Block
+	result = tuc.storage.DB.Preload("ExerciseBlocks").Preload("Exercises").Where("id IN ?", blockIds).Find(&blocks)
+
+	return &training, blocks, result.Error
 }
 
-func (tuc *TrainingsUseCase) Update(id int, req *requests.TrainingRequestBody) (*models.Training, error) {
+func (tuc *TrainingsUseCase) Update(id int, req *requests.TrainingRequestBody) (*models.Training, []models.Block, error) {
 	var training models.Training
 	result := tuc.storage.DB.Preload("TrainingBlocks").Preload("Blocks").First(&training, id)
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, []models.Block{}, result.Error
 	}
 
 	updatedTr, err := tuc.updateTraining(training, *req)
 	if err != nil {
-		return nil, err
+		return nil, []models.Block{}, err
 	}
 
 	result = tuc.storage.DB.Save(&updatedTr)
-	return updatedTr, result.Error
+	if result.Error != nil {
+		return nil, []models.Block{}, result.Error
+	}
+
+	blockIds := make([]uint, len(training.TrainingBlocks))
+	for i, t := range training.TrainingBlocks {
+		blockIds[i] = t.BlockID
+	}
+
+	var blocks []models.Block
+	result = tuc.storage.DB.Preload("ExerciseBlocks").Preload("Exercises").Where("id IN ?", blockIds).Find(&blocks)
+
+	return &training, blocks, result.Error
 }
 
-func (tuc *TrainingsUseCase) ToggleDraft(id int) (*models.Training, error) {
+func (tuc *TrainingsUseCase) ToggleDraft(id int) (*models.Training, []models.Block, error) {
 	var training models.Training
 	result := tuc.storage.DB.Preload("TrainingBlocks").Preload("Blocks").First(&training, id)
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, []models.Block{}, result.Error
 	}
 
 	if training.Draft {
@@ -180,7 +218,19 @@ func (tuc *TrainingsUseCase) ToggleDraft(id int) (*models.Training, error) {
 	}
 
 	result = tuc.storage.DB.Save(&training)
-	return &training, result.Error
+	if result.Error != nil {
+		return nil, []models.Block{}, result.Error
+	}
+
+	blockIds := make([]uint, len(training.TrainingBlocks))
+	for i, t := range training.TrainingBlocks {
+		blockIds[i] = t.BlockID
+	}
+
+	var blocks []models.Block
+	result = tuc.storage.DB.Preload("ExerciseBlocks").Preload("Exercises").Where("id IN ?", blockIds).Find(&blocks)
+
+	return &training, blocks, result.Error
 }
 
 func (tuc *TrainingsUseCase) Delete(id int) error {
