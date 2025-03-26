@@ -59,7 +59,7 @@ func (router *TrainingRouter) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	byteData, err := json.Marshal(router.presenter.Training(result))
+	byteData, err := json.Marshal(router.presenter.Training(result, []models.Block{}))
 	if err != nil {
 		http.Error(w, fmt.Sprintf("json encoding err: %s", err.Error()), http.StatusInternalServerError)
 		return
@@ -131,10 +131,11 @@ func (router *TrainingRouter) handleBlock(w http.ResponseWriter, r *http.Request
 	}
 
 	var training *models.Training
+	var blocks []models.Block
 	if action == "add" {
-		training, err = router.useCase.AddTrainingBlock(uint(trainingID), uint(blockID))
+		training, blocks, err = router.useCase.AddTrainingBlock(uint(trainingID), uint(blockID))
 	} else {
-		training, err = router.useCase.RemoveTrainingBlock(uint(trainingID), uint(blockID))
+		training, blocks, err = router.useCase.RemoveTrainingBlock(uint(trainingID), uint(blockID))
 	}
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -146,7 +147,7 @@ func (router *TrainingRouter) handleBlock(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	byteData, err := json.Marshal(router.presenter.Training(training))
+	byteData, err := json.Marshal(router.presenter.Training(training, blocks))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -194,7 +195,7 @@ func (router *TrainingRouter) toggleDraft(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	result, err := router.useCase.ToggleDraft(idInt)
+	training, blocks, err := router.useCase.ToggleDraft(idInt)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -204,7 +205,7 @@ func (router *TrainingRouter) toggleDraft(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	byteData, err := json.Marshal(router.presenter.Training(result))
+	byteData, err := json.Marshal(router.presenter.Training(training, blocks))
 	if err != nil {
 		http.Error(w, fmt.Sprintf("json encoding err: %s", err.Error()), http.StatusInternalServerError)
 		return
@@ -219,7 +220,7 @@ func (router *TrainingRouter) toggleDraft(w http.ResponseWriter, r *http.Request
 }
 
 func (router *TrainingRouter) get(id int, w http.ResponseWriter, _ *http.Request) {
-	result, err := router.useCase.Find(id)
+	training, blocks, err := router.useCase.Find(id)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -229,7 +230,7 @@ func (router *TrainingRouter) get(id int, w http.ResponseWriter, _ *http.Request
 		return
 	}
 
-	byteData, err := json.Marshal(router.presenter.Training(result))
+	byteData, err := json.Marshal(router.presenter.Training(training, blocks))
 	if err != nil {
 		http.Error(w, fmt.Sprintf("json encoding err: %s", err.Error()), http.StatusInternalServerError)
 		return
@@ -249,13 +250,13 @@ func (router *TrainingRouter) update(id int, w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	result, err := router.useCase.Update(id, &req)
+	training, blocks, err := router.useCase.Update(id, &req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 
-	byteData, err := json.Marshal(router.presenter.Training(result))
+	byteData, err := json.Marshal(router.presenter.Training(training, blocks))
 	if err != nil {
 		http.Error(w, fmt.Sprintf("json encoding err: %s", err.Error()), http.StatusInternalServerError)
 		return

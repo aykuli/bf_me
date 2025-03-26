@@ -126,16 +126,7 @@ func (p *Presenter) takeExerciseByID(exercises []models.Exercise, exerciseID uin
 func (p *Presenter) Blocks(bs []models.Block) []*Block {
 	exercises := make([]*Block, len(bs))
 	for i, block := range bs {
-		exercises[i] = &Block{
-			ID:            block.ID,
-			CreatedAt:     block.CreatedAt.Format("January 2, 2006"),
-			TitleEn:       block.TitleEn,
-			TitleRu:       block.TitleRu,
-			TotalDuration: block.TotalDuration,
-			OnTime:        block.OnTime,
-			RelaxTime:     block.RelaxTime,
-			Draft:         block.Draft,
-		}
+		exercises[i] = p.Block(&block)
 	}
 	return exercises
 }
@@ -149,27 +140,21 @@ type Training struct {
 	Blocks    []*Block `json:"blocks"`
 }
 
-func (p *Presenter) Training(tr *models.Training) Training {
+func (p *Presenter) Training(tr *models.Training, blocks []models.Block) Training {
 	return Training{
 		ID:        tr.ID,
 		CreatedAt: tr.CreatedAt.Format("January 2, 2006"),
 		TitleEn:   tr.TitleEn,
 		TitleRu:   tr.TitleRu,
 		Draft:     tr.Draft,
-		Blocks:    p.Blocks(tr.Blocks),
+		Blocks:    p.Blocks(blocks),
 	}
 }
-func (p *Presenter) Trainings(trs []*models.Training) []*Training {
-	arrTrs := make([]*Training, len(trs))
+
+func (p *Presenter) Trainings(trs []*models.Training) []Training {
+	arrTrs := make([]Training, len(trs))
 	for i, tr := range trs {
-		arrTrs[i] = &Training{
-			ID:        tr.ID,
-			CreatedAt: tr.CreatedAt.Format("January 2, 2006"),
-			TitleEn:   tr.TitleEn,
-			TitleRu:   tr.TitleRu,
-			Draft:     tr.Draft,
-			Blocks:    p.Blocks(tr.Blocks),
-		}
+		arrTrs[i] = p.Training(tr, []models.Block{})
 	}
 	return arrTrs
 }
