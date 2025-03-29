@@ -4,6 +4,7 @@ import (
 	"bf_me/internal/models"
 	"context"
 	"fmt"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -48,9 +49,5 @@ func New(uri string) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to migrate tables %s", err)
 	}
 
-	//result = db.Exec("ALTER TABLE training_blocks ADD CONSTRAINT IF NOT EXISTS uniq_training_block UNIQUE (training_id, block_id)")
-	//if result.Error != nil {
-	//	return nil, fmt.Errorf("failed to create constraint: %s", result.Error)
-	//}
 	return db, err
 }
