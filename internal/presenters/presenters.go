@@ -80,8 +80,8 @@ type BlockExercise struct {
 	Filename string `json:"filename"`
 }
 
-func (p *Presenter) Block(block *models.Block) *Block {
-	return &Block{
+func (p *Presenter) Block(block models.Block) Block {
+	return Block{
 		ID:            block.ID,
 		CreatedAt:     block.CreatedAt.Format("January 2, 2006"),
 		TitleEn:       block.TitleEn,
@@ -94,7 +94,7 @@ func (p *Presenter) Block(block *models.Block) *Block {
 	}
 }
 
-func (p *Presenter) buildBlockExercises(block *models.Block) []BlockExercise {
+func (p *Presenter) buildBlockExercises(block models.Block) []BlockExercise {
 	slices.SortFunc(block.ExerciseBlocks, func(a, b models.ExerciseBlock) int {
 		return int(a.ExerciseOrder - b.ExerciseOrder)
 	})
@@ -115,30 +115,30 @@ func (p *Presenter) buildBlockExercises(block *models.Block) []BlockExercise {
 	return arr
 }
 
-func (p *Presenter) takeExerciseByID(exercises []models.Exercise, exerciseID uint) *models.Exercise {
+func (p *Presenter) takeExerciseByID(exercises []models.Exercise, exerciseID uint) models.Exercise {
 	for _, e := range exercises {
 		if e.ID == exerciseID {
-			return &e
+			return e
 		}
 	}
-	return nil
+	return models.Exercise{}
 }
 
-func (p *Presenter) Blocks(bs []models.Block) []*Block {
-	exercises := make([]*Block, len(bs))
+func (p *Presenter) Blocks(bs []models.Block) []Block {
+	exercises := make([]Block, len(bs))
 	for i, block := range bs {
-		exercises[i] = p.Block(&block)
+		exercises[i] = p.Block(block)
 	}
 	return exercises
 }
 
 type Training struct {
-	ID        uint     `json:"id"`
-	CreatedAt string   `json:"createdAt"`
-	TitleEn   string   `json:"titleEn"`
-	TitleRu   string   `json:"titleRu"`
-	Draft     bool     `json:"draft"`
-	Blocks    []*Block `json:"blocks"`
+	ID        uint    `json:"id"`
+	CreatedAt string  `json:"createdAt"`
+	TitleEn   string  `json:"titleEn"`
+	TitleRu   string  `json:"titleRu"`
+	Draft     bool    `json:"draft"`
+	Blocks    []Block `json:"blocks"`
 }
 
 func (p *Presenter) Training(tr *models.Training, blocks []models.Block) Training {

@@ -237,6 +237,23 @@ func (tuc *TrainingsUseCase) ToggleDraft(id int) (*models.Training, []models.Blo
 func (tuc *TrainingsUseCase) Delete(id int) error {
 	var training *models.Training
 	result := tuc.storage.DB.First(&training, id)
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	//delete all block training relations
+	var blockTrainingRelations []models.TrainingBlock
+	result = tuc.storage.DB.Find(&blockTrainingRelations, "training_id = ?", id)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if len(blockTrainingRelations) != 0 {
+		result = tuc.storage.DB.Unscoped().Delete(&blockTrainingRelations)
+		if result.Error != nil {
+			return result.Error
+		}
+	}
 
 	result = tuc.storage.DB.Delete(&models.Training{}, id)
 	return result.Error

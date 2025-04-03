@@ -13,6 +13,7 @@ import (
 
 var (
 	ErrBlockNotReady        = errors.New("block is not ready to be published\nadd more exercises")
+	ErrBlockCannotBeDeleted = errors.New("block cannot be deleted becase it is a part of workout")
 	ErrBlockFullOfExercises = errors.New("block full of exercises\n check it and be ready to publish it")
 	ErrExerciseDeleted      = errors.New("exercise was deleted\nchoose another one")
 )
@@ -52,34 +53,34 @@ func (buc *BlocksUseCase) List(req *requests.FilterRequestBody) ([]models.Block,
 	return blocks, result.Error
 }
 
-func (buc *BlocksUseCase) AddBlockExercise(blockID, exerciseID uint, req *requests.AddBlockExerciseRequestBody) (*models.Block, error) {
+func (buc *BlocksUseCase) AddBlockExercise(blockID, exerciseID uint, req *requests.AddBlockExerciseRequestBody) (models.Block, error) {
 	var block models.Block
 	result := buc.storage.DB.Preload("ExerciseBlocks").First(&block, blockID)
 	if result.Error != nil {
-		return nil, result.Error
+		return block, result.Error
 	}
 	if !block.Draft {
-		return nil, errors.New("block is not draft\nyou cannot add exercise")
+		return block, errors.New("block is not draft\nyou cannot add exercise")
 	}
 	//check if exercises count is not reached its highest level
 	full := buc.checkBlockFullOfExercises(&block)
 	if full {
-		return nil, ErrBlockFullOfExercises
+		return block, ErrBlockFullOfExercises
 	}
 
 	var exercise models.Exercise
 	result = buc.storage.DB.First(&exercise, exerciseID)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, ErrExerciseDeleted
+		return block, ErrExerciseDeleted
 	}
 	if result.Error != nil {
-		return nil, result.Error
+		return block, result.Error
 	}
 
 	var ebs []models.ExerciseBlock
 	result = buc.storage.DB.Where("block_id = ?", blockID).Find(&ebs)
 	if result.Error != nil {
-		return nil, result.Error
+		return block, result.Error
 	}
 
 	nextOrder := buc.findNextOrder(block.ExerciseBlocks)
@@ -95,28 +96,29 @@ func (buc *BlocksUseCase) AddBlockExercise(blockID, exerciseID uint, req *reques
 	}
 	result = buc.storage.DB.Create(&eb)
 	if result.Error != nil {
-		return nil, result.Error
+		return block, result.Error
 	}
 
 	result = buc.storage.DB.Preload("ExerciseBlocks").Preload("Exercises").First(&block, blockID)
-	return &block, result.Error
+	return block, result.Error
 }
 
-func (buc *BlocksUseCase) RemoveBlockExercise(blockID, exerciseID uint) (*models.Block, error) {
+func (buc *BlocksUseCase) RemoveBlockExercise(blockID, exerciseID uint) (models.Block, error) {
 	var exerciseBlockRelation models.ExerciseBlock
+	var block models.Block
+
 	result := buc.storage.DB.First(&exerciseBlockRelation, "block_id = ? AND exercise_id = ?", blockID, exerciseID)
 	if result.Error != nil {
-		return nil, result.Error
+		return block, result.Error
 	}
 
 	result = buc.storage.DB.Unscoped().Delete(&exerciseBlockRelation)
 	if result.Error != nil {
-		return nil, result.Error
+		return block, result.Error
 	}
 
-	var block models.Block
 	result = buc.storage.DB.Preload("ExerciseBlocks").Preload("Exercises").First(&block, blockID)
-	return &block, result.Error
+	return block, result.Error
 }
 
 func (buc *BlocksUseCase) findNextOrder(ebs []models.ExerciseBlock) uint {
@@ -130,7 +132,7 @@ func (buc *BlocksUseCase) findNextOrder(ebs []models.ExerciseBlock) uint {
 	return order
 }
 
-func (buc *BlocksUseCase) updateBlock(block models.Block, req requests.BlockRequestBody) (*models.Block, error) {
+func (buc *BlocksUseCase) updateBlock(block models.Block, req requests.BlockRequestBody) (models.Block, error) {
 	if req.TitleRu != "" {
 		block.TitleRu = req.TitleRu
 	}
@@ -146,16 +148,16 @@ func (buc *BlocksUseCase) updateBlock(block models.Block, req requests.BlockRequ
 	}
 	block.RelaxTime = req.RelaxTime
 
-	return &block, nil
+	return block, nil
 }
 
-func (buc *BlocksUseCase) Create(req *requests.BlockRequestBody) (*models.Block, error) {
+func (buc *BlocksUseCase) Create(req *requests.BlockRequestBody) (models.Block, error) {
 	var block models.Block
 	updatedBlock, err := buc.updateBlock(block, *req)
 	if err != nil {
-		return nil, err
+		return block, err
 	}
-	buc.fitTiming(updatedBlock)
+	buc.fitTiming(&updatedBlock)
 
 	result := buc.storage.DB.Create(&updatedBlock)
 	return updatedBlock, result.Error
@@ -193,48 +195,90 @@ func (buc *BlocksUseCase) fitTiming(block *models.Block) {
 	block.RelaxTime = 60 - block.OnTime
 }
 
-func (buc *BlocksUseCase) Find(id int) (*models.Block, error) {
+func (buc *BlocksUseCase) Find(id int) (models.Block, error) {
 	var block models.Block
 	result := buc.storage.DB.Preload("ExerciseBlocks").Preload("Exercises").First(&block, id)
-	return &block, result.Error
+	return block, result.Error
 }
 
-func (buc *BlocksUseCase) Update(id int, req *requests.BlockRequestBody) (*models.Block, error) {
+func (buc *BlocksUseCase) Update(id int, req *requests.BlockRequestBody) (models.Block, error) {
 	var block models.Block
 	result := buc.storage.DB.Preload("ExerciseBlocks").Preload("Exercises").First(&block, id)
 	if result.Error != nil {
-		return nil, result.Error
+		return block, result.Error
 	}
 
 	buc.fitTiming(&block)
 	updatedBlock, err := buc.updateBlock(block, *req)
 	if err != nil {
-		return nil, err
+		return block, err
 	}
 
 	result = buc.storage.DB.Save(&updatedBlock)
 	return updatedBlock, result.Error
 }
 
-func (buc *BlocksUseCase) ToggleDraft(id int) (*models.Block, error) {
+func (buc *BlocksUseCase) ToggleDraft(id int) (models.Block, error) {
 	var block models.Block
 	result := buc.storage.DB.First(&block, id)
 	if result.Error != nil {
-		return nil, result.Error
+		return block, result.Error
 	}
 
 	result = buc.storage.DB.Model(&block).Update("draft", !block.Draft)
 	if result.Error != nil {
-		return nil, result.Error
+		return block, result.Error
 	}
 
 	result = buc.storage.DB.Preload("ExerciseBlocks").Preload("Exercises").First(&block, id)
-	return &block, result.Error
+	return block, result.Error
 }
 
 func (buc *BlocksUseCase) Delete(id int) error {
+	//check if block has related workout
+	var trainingBlocks []models.TrainingBlock
+	result := buc.storage.DB.Where("block_id = ?", id).Find(&trainingBlocks)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	for _, tr := range trainingBlocks {
+		var training *models.Training
+		result = buc.storage.DB.Find(&training, tr.TrainingID)
+		if result.Error != nil {
+			return result.Error
+		}
+
+		//check if training was deleted
+		//		if not deleted -> throw an error
+		//		else continue
+		deletedValue, err := training.DeletedAt.Value()
+		if err != nil {
+			return err
+		}
+		if deletedValue == nil {
+			return errors.New(fmt.Sprintf("block cannot be deleted because it is a part of the workout with id=%d", training.ID))
+		}
+	}
+
+	//we should delete all training and exercise relations
+	var exerciseBlockRelations []models.ExerciseBlock
+	result = buc.storage.DB.Find(&exerciseBlockRelations, "block_id = ?", id)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if len(exerciseBlockRelations) != 0 {
+		result = buc.storage.DB.Unscoped().Delete(&exerciseBlockRelations)
+		if result.Error != nil {
+			return result.Error
+		}
+	}
 	var block *models.Block
-	result := buc.storage.DB.First(&block, id)
+	result = buc.storage.DB.First(&block, id)
+	if result.Error != nil {
+		return result.Error
+	}
 
 	result = buc.storage.DB.Delete(&models.Block{}, id)
 	return result.Error

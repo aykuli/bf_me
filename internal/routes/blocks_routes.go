@@ -130,7 +130,7 @@ func (router *BlocksRouter) handleExercise(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var block *models.Block
+	var block models.Block
 	if action == "add" {
 		req := requests.AddBlockExerciseRequestBody{}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
