@@ -4,6 +4,7 @@ import (
 	"bf_me/internal/models"
 	"bf_me/internal/requests"
 	"bf_me/internal/storage"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -99,6 +100,29 @@ func (euc *ExercisesUseCase) sanitizeFilename(filename string) string {
 }
 
 func (euc *ExercisesUseCase) Delete(id int) error {
+	//check if exercise has related block
+	var exerciseBlocks []models.ExerciseBlock
+	result := euc.storage.DB.Where("exercise_id = ?", id).Find(&exerciseBlocks)
+	if result.Error != nil {
+		return result.Error
+	}
+	//range trainingBlocks check everu entity for deleted value
+
+	if result.RowsAffected != 0 {
+		var training *models.Training
+		result = euc.storage.DB.Find(&training, trainingBlock.TrainingID)
+		//check if training was deleted
+		//		if not deleted -> throw an error
+		//		else continue
+		deletedValue, err := training.DeletedAt.Value()
+		if err != nil {
+			return err
+		}
+		if deletedValue == nil {
+			return errors.New(fmt.Sprintf("block cannot be deleted because it is a part of workout with id=%d", training.ID))
+		}
+	}
+
 	var e *models.Exercise
 	result := euc.storage.DB.First(&e, id)
 
