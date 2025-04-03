@@ -241,10 +241,14 @@ func (buc *BlocksUseCase) Delete(id int) error {
 	if result.Error != nil {
 		return result.Error
 	}
-	if result.RowsAffected != 0 {
-		//range trainingBlocks check everu entity for deleted value
+
+	for _, tr := range trainingBlocks {
 		var training *models.Training
-		result = buc.storage.DB.Find(&training, trainingBlock.TrainingID)
+		result = buc.storage.DB.Find(&training, tr.TrainingID)
+		if result.Error != nil {
+			return result.Error
+		}
+
 		//check if training was deleted
 		//		if not deleted -> throw an error
 		//		else continue
@@ -253,7 +257,7 @@ func (buc *BlocksUseCase) Delete(id int) error {
 			return err
 		}
 		if deletedValue == nil {
-			return errors.New(fmt.Sprintf("block cannot be deleted because it is a part of workout with id=%d", training.ID))
+			return errors.New(fmt.Sprintf("block cannot be deleted because it is a part of the workout with id=%d", training.ID))
 		}
 	}
 

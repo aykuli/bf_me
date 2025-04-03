@@ -106,25 +106,31 @@ func (euc *ExercisesUseCase) Delete(id int) error {
 	if result.Error != nil {
 		return result.Error
 	}
-	//range trainingBlocks check everu entity for deleted value
+	// range trainingBlocks check everu entity for deleted value
 
-	if result.RowsAffected != 0 {
-		var training *models.Training
-		result = euc.storage.DB.Find(&training, trainingBlock.TrainingID)
+	for _, eb := range exerciseBlocks {
+		var block *models.Block
+		result = euc.storage.DB.Find(&block, eb.BlockID)
+		if result.Error != nil {
+			return result.Error
+		}
 		//check if training was deleted
 		//		if not deleted -> throw an error
 		//		else continue
-		deletedValue, err := training.DeletedAt.Value()
+		deletedValue, err := block.DeletedAt.Value()
 		if err != nil {
 			return err
 		}
 		if deletedValue == nil {
-			return errors.New(fmt.Sprintf("block cannot be deleted because it is a part of workout with id=%d", training.ID))
+			return errors.New(fmt.Sprintf("exerrcise cannot be deleted because it is a part of the block with id=%d", block.ID))
 		}
 	}
 
 	var e *models.Exercise
-	result := euc.storage.DB.First(&e, id)
+	result = euc.storage.DB.First(&e, id)
+	if result.Error != nil {
+		return result.Error
+	}
 
 	spl := strings.Split(e.Filename, "/")
 	err := euc.storage.S3.Delete(spl[0])
